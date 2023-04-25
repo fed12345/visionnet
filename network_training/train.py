@@ -8,7 +8,7 @@ import tensorflow as tf
 
 sys.path.append("visionnet/network/visionnet/network_creation/")
 
-from visionnet import createModel
+from visionnet import createModel, createModelDronet
 from gendataset import Dataset
 
 def visualizePerdiction(image, prediction, actual):
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     csvFileAustin2 = '/data/federico/visionnet/training_data/Austin2/corners.csv'
 
     # Define the input and output shapes of the model
-    input_shape = (600, 360, 3)
+    input_shape = (120,180,3) #height, width, channels
     output_shape = (8,) 
     
     # Initialize the datasets
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     for i in range(len(imagesVal)):
         cv2.imwrite('visionnet/network/visionnet/evalutation/'+ str(i) + '.png',visualizePerdiction(imagesVal[i], predictions[i], labelsVal[i]))
 
-    print('Saving Model')
-    tf.saved_model.save(model, 'visionnet/network/visionnet/evalutation/visionnet')
+    # print('Saving Model')
+    # tf.saved_model.save(model, 'visionnet/network/visionnet/evalutation/visionnet')
 
     # # Convert the model
     # converter = tf.lite.TFLiteConverter.from_saved_model('visionnet/network/visionnet/evalutation/visionnet') # path to the SavedModel directory
@@ -74,5 +74,10 @@ if __name__ == "__main__":
     # # Save the model.
     # with open('visionnet.tflite', 'wb') as f:
     #     f.write(tflite_model)   
-
+    
+    # Save the model to tflite
+    # converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    # print('Loaded model')
+    # tflite_model = converter.convert()
+    # open("visionnet.tflite", "wb").write(tflite_model)
 
