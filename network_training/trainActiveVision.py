@@ -73,11 +73,11 @@ for i in range(len(predictions)):
 
         distance = predictions[i][1]
         angle = predictions[i][2]
-        corner = center + np.array([distance*np.cos(angle)/8, distance*np.sin(angle)/8])
+        corner = center + np.array([distance*np.cos(angle*(np.pi/180))/8, distance*np.sin(angle*(np.pi/180))/8])
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (255, 0, 0), 2)
 
         #add actual distance and angle
-        corner_val = center + np.array([labelsVal[i][1]*np.cos(labelsVal[i][2])/8, labelsVal[i][1]*np.sin(labelsVal[i][2])/8])
+        corner_val = center + np.array([labelsVal[i][1]*np.cos(labelsVal[i][2]*(np.pi/180))/8, labelsVal[i][1]*np.sin(labelsVal[i][2]*(np.pi/180))/8])
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     cv2.imwrite('evalutation/activevision/result'+ str(i) + '.png',image)
 print('done')
