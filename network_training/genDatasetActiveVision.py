@@ -150,6 +150,11 @@ class DatasetActive():
             dict: tarining dataset, validation dataset
         """        
         self.labels_df = pd.read_csv(self.csv_file)
+        #convert radians to degrees from 0 to 360
+
+        self.labels_df['angle'] = np.where(self.labels_df['angle']<0, self.labels_df['angle']+2*np.pi, self.labels_df['angle'])
+        self.labels_df['angle'] = np.where(self.labels_df['angle']>2*np.pi, self.labels_df['angle']-2*np.pi, self.labels_df['angle'])
+        self.labels_df['angle'] = self.labels_df['angle'] * 180 / np.pi
         # Get a list of all image filenames
         image_files = [file for file in os.listdir(self.image_dir) if file.endswith('.png')]
         
