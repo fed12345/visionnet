@@ -3,3 +3,4 @@ evalutation/
 models/*
 dataset/*
 *.pyc
+dataset/

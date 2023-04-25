@@ -22,11 +22,11 @@ def visualizePerdiction(image, prediction, actual):
 if __name__ == "__main__":
    
     # Define the image directory and CSV file
-    imageDirAustin1 = '/data/federico/visionnet/training_data/Austin1'
-    csvFileAustin1 = '/data/federico/visionnet/training_data/Austin1/corners.csv'
+    imageDirAustin1 = '/dataset/Austin1'
+    csvFileAustin1 = '/dataset/Austin1/corners.csv'
 
-    imageDirAustin2 = '/data/federico/visionnet/training_data/Austin2'
-    csvFileAustin2 = '/data/federico/visionnet/training_data/Austin2/corners.csv'
+    imageDirAustin2 = '/dataset/Austin2'
+    csvFileAustin2 = '/dataset/Austin2/corners.csv'
 
     # Define the input and output shapes of the model
     input_shape = (120,180,3) #height, width, channels

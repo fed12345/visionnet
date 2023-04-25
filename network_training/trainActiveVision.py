@@ -17,6 +17,7 @@ csvFileAustin1 = 'dataset/ActiveVision/Austin1_quadrants/Austin1_quadrants.csv'
 imageDirAustin2 = 'dataset/ActiveVision/Austin2_quadrants/'
 csvFileAustin2 = 'dataset/ActiveVision/Austin2_quadrants/Austin2_quadrants.csv'
 
+device = '/GPU:2'
 # Define the input and output shapes of the model
 input_shape = (90,150,3) #quadrant size height, width, channels
 output_shape = (3,)
@@ -34,12 +35,16 @@ datasetTrain = trainAustin1.concatenate(trainAustin2)
 datasetVal = valAustin1.concatenate(valAustin2)
 print('Datasets Ready')
 
-# Create the model
-model = createModelActiveVision(input_shape=input_shape)
-model.summary()
+strategy = tf.distribute.OneDeviceStrategy(device = device)
+    # Create the model
+   
+with strategy.scope():
+    # Create the model
+    model = createModelActiveVision(input_shape=input_shape)
+    model.summary()
 
-# Train the model
-model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1)
+    # Train the model
+    model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1)
 
 # Evaluate the model on the validation set
 valLoss, valAcc, _ = model.evaluate(datasetVal)
