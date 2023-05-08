@@ -11,36 +11,36 @@ sys.path.append("network_creation")
 from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
 
-imageDirAustin1 = 'dataset/ActiveVision/Austin1_quadrants/'
-csvFileAustin1 = 'dataset/ActiveVision/Austin1_quadrants/Austin1_quadrants.csv'
-
-imageDirAustin2 = 'dataset/ActiveVision/Austin2_quadrants/'
-csvFileAustin2 = 'dataset/ActiveVision/Austin2_quadrants/Austin2_quadrants.csv'
-
-imageDirBoston = 'dataset/ActiveVision/Boston_quadrants/'
-csvFileBoston = 'dataset/ActiveVision/Boston_quadrants/Boston_quadrants.csv'
-
 device = '/GPU:2'
 # Define the input and output shapes of the model
 input_shape = (90,150,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 16
 
-#initialize the datasets
-datasetAustin1 = DatasetActive(imageDirAustin1, csvFileAustin1, input_shape, output_shape, input_shape)
-datasetAustin2 = DatasetActive(imageDirAustin2, csvFileAustin2, input_shape, output_shape, input_shape)
-datasetBoston = DatasetActive(imageDirBoston,csvFileBoston,input_shape,output_shape,input_shape)
+#Define image directory
+dataset_dir = 'dataset/ActiveVision/'
 
-#Generate the datasets
-trainAustin1, valAustin1 = datasetAustin1.createDataset(batch_size=batch_size)
-trainAustin2, valAustin2 = datasetAustin2.createDataset(batch_size=batch_size)
-trainBoston, valBoston = datasetBoston.createDataset(batch_size=batch_size)
+image_dirs = [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
+datasetTrain = None
+datasetVal = None
+for image_dir in image_dirs:
+    #Define csv file
+    csv_file = os.path.join(dataset_dir,image_dir,'data.csv')
 
-#Combine the datasets
-datasetTrain = trainAustin1.concatenate(trainAustin2)
-datasetTrain = datasetTrain.concatenate(trainBoston)
-datasetVal = valAustin1.concatenate(valAustin2)
-datasetVal = datasetVal.concatenate(valBoston)
+    #initialize the dataset
+    dataset = DatasetActive(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, input_shape)
+
+    #Generate the datasets
+    train, val = dataset.createDataset(batch_size=batch_size)
+
+    #Combine the datasets
+    if datasetTrain == None:
+        datasetTrain = train
+        datasetVal = val
+    else:
+        datasetTrain = datasetTrain.concatenate(train)
+        datasetVal = datasetVal.concatenate(val)
+
 print('Datasets Ready')
 
 strategy = tf.distribute.OneDeviceStrategy(device = device)

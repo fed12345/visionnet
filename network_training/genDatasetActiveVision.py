@@ -55,14 +55,19 @@ class DatasetActive():
             numpy array: image
             numpy array: corners
         """
+        with open(self.csv_file, 'a') as f:
+            f.write('filename' + ',' + 'confidence' + ',' + 'corner_x' + ',' + 'corner_y' + '\n')
+
         corners_labels_df = pd.read_csv(CNN_csv_corners)
         image_files = [file for file in os.listdir(CNN_image_dir) if file.endswith('.png')]
 
+        #Reality check
+        if not (self.input_shape[0]%self.quadrant_size[0] == 0 or self.input_shape[1]%self.quadrant_size[1] == 0):
+            raise ValueError('Input shape must be divisible by quadrant size')
+        
         # Detemrine number of quadrants
         num_rows = int(self.input_shape[0]/self.quadrant_size[0])
         num_cols= int(self.input_shape[1]/self.quadrant_size[1])
-
-        #Reality check
     
         for i in image_files:
             image_org = cv2.imread( os.path.join( CNN_image_dir, i))
@@ -92,18 +97,16 @@ class DatasetActive():
 
                     # corner is in quadrant
                     confidence = 1
-                    distance = 0
-                    angle = 0
+                    distances = np.zeros(2)
                     if (corners[0]<start_col or corners[0]>end_col or corners[1]<start_row or corners[1]>end_row):
                         #calculate distance and angle to top left corner from center of quadrant
                         confidence = 0
                         center = np.array([start_col + self.quadrant_size[1]/2, start_row + self.quadrant_size[0]/2])
-                        distance = np.linalg.norm(corners - center)
-                        angle = np.arctan2(corners[1] - center[1], corners[0] - center[0])
-
+                        distances[0] = corners[0] - center[0]
+                        distances[1] = corners[1] - center[1]
                     #make entry in csv file
                     with open(self.csv_file, 'a') as f:
-                        f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence) + ',' + str(distance) + ',' + str(angle) + '\n')
+                        f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence) + ',' + str(distances[0]) + ',' + str(distances[1]) + '\n')
         
         print('Preprocessing done')
                     
@@ -131,11 +134,11 @@ class DatasetActive():
             filename (string): filename of the labels
 
         Returns:
-            numpy array: confidence, distance[pixel], angle[rad]
+            numpy array: confidence, corner_x[pixel],corner_y[pixel]
         """ 
 
         row =  self.labels_df[ self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
-        results = np.array([row['confidence'], row['distance'], row['angle']])
+        results = np.array([row['confidence'], row['corner_x'], row['corner_x']])
        
         return results.astype('float32')
 
@@ -152,13 +155,7 @@ class DatasetActive():
             dict: tarining dataset, validation dataset
         """        
         self.labels_df = pd.read_csv(self.csv_file)
-        #convert radians to degrees from 0 to 360
-
-        self.labels_df['angle'] = np.where(self.labels_df['angle']<0, self.labels_df['angle']+2*np.pi, self.labels_df['angle'])
-        self.labels_df['angle'] = np.where(self.labels_df['angle']>2*np.pi, self.labels_df['angle']-2*np.pi, self.labels_df['angle'])
-        self.labels_df['angle'] = self.labels_df['angle'] * 180 / np.pi
         # Get a list of all direcotry image filenames 
-        image_files = []
         image_files = [os.path.join(self.image_dir,file) for file in os.listdir(self.image_dir) if file.endswith('.png')]
         
         # Create a TensorFlow dataset from the image filenames
@@ -183,6 +180,71 @@ class DatasetActive():
 
 
 
+def reconsturctImage(csv, image = 'img_1_'):
+    """Reconstructs the image from the quadrants and add arrows to corner based on csv
+
+    Args:
+        csv (string): csv file with confidence and corner location
+        image (str, optional): _description_. Defaults to 'img_1'.
+    """  
+    #Find all quadrants for image
+    quadrants = [f for f in os.listdir('dataset/ActiveVision/Austin1_quadrants') if f.startswith(image)]
+    #Sort quadrants based on number after img_1_
+    quadrants.sort(key=lambda x: int(x.split('_')[2].split('.')[0]))
+    
+    #Read data form csv file
+    df = pd.read_csv(csv)
+    quadrant_dict = {'name':[], 'confidence':[], 'corner_x':[], 'corner_y':[], 'center_x':[], 'center_y':[]}
+    for quadrant in quadrants:
+        #Find confidence and corner location
+        row = df[df['filename'] == quadrant]
+        quadrant_dict['name'].append(quadrant)
+        quadrant_dict['confidence'].append(row['confidence'].values[0])
+        quadrant_dict['corner_x'].append(row['corner_x'].values[0])
+        quadrant_dict['corner_y'].append(row['corner_y'].values[0])
+
+    #Find Center of quadrant large image
+    shape = (4,4)
+    for i in range(shape[0]):
+        start_row = i*90
+        for j in range(shape[1]):
+            start_col = j*150
+            quadrant_dict['center_x'].append(start_col+75)
+            quadrant_dict['center_y'].append(start_row+45)
+    
+
+    # Initialize variables
+    image_rows = []
+    row_lengths = [4, 4, 4, 4]  # Each row contains 4 images
+    start_idx = 0
+    # Create rows
+    for row_len in row_lengths:
+        row = cv2.imread(os.path.join('dataset/ActiveVision/Austin2_quadrants', quadrant_dict['name'][start_idx]))
+        for i in range(start_idx + 1, start_idx + row_len):
+            img_arrow = cv2.imread(os.path.join('dataset/ActiveVision/Austin2_quadrants', quadrant_dict['name'][i]))
+            row = np.hstack((row, img_arrow ))
+        image_rows.append(row)
+        start_idx += row_len
+
+
+    image = np.vstack(tuple(image_rows))
+    #Loop through all quadrants and add arrows from the center of each quadrant
+    for i in range(len(quadrant_dict['name'])):
+        if quadrant_dict['confidence'][i] == 1:
+            continue
+        #Add Arrow from center of quadrant to corner
+        image = cv2.arrowedLine(image, (int(quadrant_dict['center_x'][i]), int(quadrant_dict['center_y'][i])), (int(quadrant_dict['corner_x'][i]+quadrant_dict['center_x'][i]), 
+                                                                                                                int(quadrant_dict['corner_y'][i]+quadrant_dict['center_y'][i])), 
+                                                                                                                (0,0,255), 1, tipLength=0.01)
+  
+    cv2.imshow('Image',image)
+    cv2.waitKey(0)
+
+    
+
+
+
+
 
                     
 
@@ -191,17 +253,29 @@ class DatasetActive():
 
 if __name__ == "__main__":
 
-    CNN_image_dir = 'dataset/CNN/Boston_Images'
-    CNN_csv_corners = 'dataset/CNN/Boston_Images/corners.csv'
+    CNN_image_dir = 'dataset/CNN/'
 
-    image_dir = 'dataset/ActiveVision/Boston_quadrants'
-    csv_file = 'dataset/ActiveVision/Boston_quadrants/Boston_quadrants.csv'
-    dataset = DatasetActive(image_dir, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
-    #dataset.preProcess(CNN_image_dir, CNN_csv_corners) #only run once to create dataset
-    train_dataset, val_dataset = dataset.createDataset(batch_size = 1)
+    image_dir = 'dataset/ActiveVision/'
+    #list all directories in CNN_image_dir
+    CNN_image_dirs = [file for file in os.listdir(CNN_image_dir) if os.path.isdir(os.path.join(CNN_image_dir, file))]
+
+    for CNN_images in CNN_image_dirs:
+        #Get csv file for each directory
+        CNN_image_dir_internal = os.path.join(CNN_image_dir, CNN_images)
+        CNN_csv_corners = os.path.join(CNN_image_dir, CNN_images, 'corners.csv')
+        csv_file = os.path.join(image_dir, CNN_images, 'data.csv')
+        image_file = os.path.join(image_dir, CNN_images)
+        if not os.path.isdir(image_file):
+            os.makedirs(image_file)
+        #Create dataset for each directory
+        dataset = DatasetActive(image_file, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
+        #dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
+
+
+    train_dataset, val_dataset = dataset.createDataset(batch_size = 16)
 
     #Visualize the dataset
-    batch = next(iter(val_dataset.take(3)))
+    batch = next(iter(train_dataset))
     images, labels = batch
 
     # Plot the images in the batch to check
@@ -213,10 +287,12 @@ if __name__ == "__main__":
         else:
             #add arrow to image to show distance and angle
             center = np.array([dataset.quadrant_size[1]/2, dataset.quadrant_size[0]/2])
-            distance = labels[i][1]
-            angle = labels[i][2]
-            corner = center + np.array([distance*np.cos(angle)/8, distance*np.sin(angle)/8])
-            image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (0, 0, 255), 2)
-        cv2.imwrite("Image", image)
+            corner_x = labels[i][1]
+            corner_y = labels[i][2]
+            corner = center + np.array([corner_x, corner_y])
+            image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(center.astype('int')+corner.astype('int')), (0, 0, 255), 2)
+        cv2.imshow("Image", image)
         cv2.waitKey(0)
+
+    
     print('done')
