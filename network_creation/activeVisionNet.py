@@ -16,10 +16,10 @@ def createModelActiveVision(input_shape=(64, 64, 3)):
         layers.MaxPooling2D((2,2)),
         layers.Conv2D(16, (3,3), activation='relu'),
         layers.MaxPooling2D((2,2)),
-        layers.Conv2D(16, (3,3), activation='relu'),
+        layers.Conv2D(16, (3,3), activation='linear'),
         layers.MaxPooling2D((2,2)),
         layers.Flatten(),
-        layers.Dense(256, activation='relu'),
+        layers.Dense(256, activation='linear'),
         layers.Dense(3)
     ])
 

@@ -116,10 +116,12 @@ class DatasetActive():
 
         Returns:
             numpy array: image
-        """        
-        image = cv2.imread( os.path.join(self.image_dir, filename.numpy().decode('utf-8')))
-        image = image.astype('float32') / 255.0
-        return image
+        """ 
+        image_dir = tf.io.read_file(filename)
+        image = tf.io.decode_png(image_dir, channels = 3)
+        image = tf.cast(image, tf.float32)*(1/255)
+        return image   
+
     
 
     def _loadLabel(self, filename):
@@ -132,7 +134,7 @@ class DatasetActive():
             numpy array: confidence, distance[pixel], angle[rad]
         """ 
 
-        row =  self.labels_df[ self.labels_df['filename'] == filename].iloc[0]
+        row =  self.labels_df[ self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
         results = np.array([row['confidence'], row['distance'], row['angle']])
        
         return results.astype('float32')
@@ -155,14 +157,15 @@ class DatasetActive():
         self.labels_df['angle'] = np.where(self.labels_df['angle']<0, self.labels_df['angle']+2*np.pi, self.labels_df['angle'])
         self.labels_df['angle'] = np.where(self.labels_df['angle']>2*np.pi, self.labels_df['angle']-2*np.pi, self.labels_df['angle'])
         self.labels_df['angle'] = self.labels_df['angle'] * 180 / np.pi
-        # Get a list of all image filenames
-        image_files = [file for file in os.listdir(self.image_dir) if file.endswith('.png')]
+        # Get a list of all direcotry image filenames 
+        image_files = []
+        image_files = [os.path.join(self.image_dir,file) for file in os.listdir(self.image_dir) if file.endswith('.png')]
         
         # Create a TensorFlow dataset from the image filenames
         filenames_ds = tf.data.Dataset.from_tensor_slices(image_files)
         
         # Map the load_image and load_label functions to the filenames to create the final dataset
-        image_ds = filenames_ds.map(lambda x: tf.py_function(self._loadImage, [x], tf.float32))
+        image_ds = filenames_ds.map(self._loadImage, num_parallel_calls=tf.data.AUTOTUNE)
         label_ds = filenames_ds.map(lambda x: tf.py_function(self._loadLabel, [x], tf.float32))
 
         #Create validation and training sets
@@ -194,8 +197,8 @@ if __name__ == "__main__":
     image_dir = 'dataset/ActiveVision/Boston_quadrants'
     csv_file = 'dataset/ActiveVision/Boston_quadrants/Boston_quadrants.csv'
     dataset = DatasetActive(image_dir, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
-    dataset.preProcess(CNN_image_dir, CNN_csv_corners) #only run once to create dataset
-    train_dataset, val_dataset = dataset.createDataset()
+    #dataset.preProcess(CNN_image_dir, CNN_csv_corners) #only run once to create dataset
+    train_dataset, val_dataset = dataset.createDataset(batch_size = 1)
 
     #Visualize the dataset
     batch = next(iter(val_dataset.take(3)))
@@ -214,6 +217,6 @@ if __name__ == "__main__":
             angle = labels[i][2]
             corner = center + np.array([distance*np.cos(angle)/8, distance*np.sin(angle)/8])
             image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (0, 0, 255), 2)
-        cv2.imshow("Image", image)
+        cv2.imwrite("Image", image)
         cv2.waitKey(0)
     print('done')

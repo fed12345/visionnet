@@ -24,7 +24,7 @@ device = '/GPU:2'
 # Define the input and output shapes of the model
 input_shape = (90,150,3) #quadrant size height, width, channels
 output_shape = (3,)
-batch_size = 32
+batch_size = 16
 
 #initialize the datasets
 datasetAustin1 = DatasetActive(imageDirAustin1, csvFileAustin1, input_shape, output_shape, input_shape)
@@ -50,9 +50,8 @@ with strategy.scope():
     # Create the model
     model = createModelActiveVision(input_shape=input_shape)
     model.summary()
-
     # Train the model
-    model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 2)
+model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1)
 
 # Evaluate the model on the validation set
 valLoss, valAcc, _ = model.evaluate(datasetVal)
