@@ -11,7 +11,43 @@ import matplotlib.pyplot as plt
 #check if corner is in quadrant
 #if not mearsure distance and angle to top left corner or say to which quadrant to go next up down left right
 
+def areaOfGate(corner1,corner2,corner3,corner4):
+    """Compute area of gate
 
+    Args:
+        corner1 (tuple): x,y of corner
+        corner2 (tuple): x,y of corner
+        corner3 (tuple): x,y of corner
+        corner4 (tuple): x,y of corner
+
+    Returns:
+        float: area of gate
+    """    
+    # compute the area of the gate
+    # https://www.mathopenref.com/coordpolygonarea.html
+    area = 0.5*np.abs((corner1[0]*corner2[1] + corner2[0]*corner3[1] + corner3[0]*corner4[1] + corner4[0]*corner1[1] - corner2[0]*corner1[1] - corner3[0]*corner2[1] - corner4[0]*corner3[1] - corner1[0]*corner4[1]))
+    return area
+
+def selectTopLeftCorner(corners):
+    """Select the top leftcorner
+
+    Args:
+        corners (list): list of corners
+
+    Returns:
+        tuple: x,y of top left corner
+    """
+    #Find 2 conrens with smallest x
+    corners.sort(key=lambda x:x[0])
+    corner1 = corners[0]
+    corner2 = corners[1]
+    if corner1[1] < corner2[1]:
+        return corner1
+    else:
+        return corner2
+
+
+    
 
 class DatasetActive():
     def __init__(self, image_dir, csv_file, input_shape, output_shape, quadrant_size):
@@ -32,17 +68,24 @@ class DatasetActive():
 
 
     def _loadCorners(self, filename, image_shape, corners_labels_df):
-        row = corners_labels_df[corners_labels_df['filename'] == filename].iloc[0]
-        corners = np.array([row['corner1_x'], row['corner1_y'], row['corner2_x'], row['corner2_y'], row['corner3_x'], row['corner3_y'], row['corner4_x'], row['corner4_y']])
-       
-        # Normalize the corners to input shape 
-        corners = corners*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
-                                    self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
-                                    self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
-        # TODO: what if there is more than gate in image? --> select biggest gate
-        # TODO: Chooese left most corner
+        rows = corners_labels_df[corners_labels_df['filename'] == filename]
+        #Choose row with biggest gate
+        biggest_area = 0
+        for i in range(len(rows)):
+            row = rows.iloc[i]
+            area = areaOfGate((row['corner1_x'], row['corner1_y']), (row['corner2_x'], row['corner2_y']), (row['corner3_x'], row['corner3_y']), (row['corner4_x'], row['corner4_y']))
+            if area > biggest_area:
+                biggest_area = area
+                biggest_row = row
+    
+
+
+        corners = [(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]
+        top_left_corner=selectTopLeftCorner(corners)
+        #Normalize the corners to input shape
+        top_left_corner = top_left_corner*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
         
-        return corners.astype('float32')
+        return top_left_corner.astype('float32')
     
 
     def preProcess(self, CNN_image_dir, CNN_csv_corners):
