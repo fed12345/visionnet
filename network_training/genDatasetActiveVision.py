@@ -39,8 +39,9 @@ class DatasetActive():
         corners = corners*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
                                     self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
                                     self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
-        # TODO: what if there is more than gate in image? --> confidence value
-
+        # TODO: what if there is more than gate in image? --> select biggest gate
+        # TODO: Chooese left most corner
+        
         return corners.astype('float32')
     
 
@@ -102,8 +103,8 @@ class DatasetActive():
                         #calculate distance and angle to top left corner from center of quadrant
                         confidence = 0
                         center = np.array([start_col + self.quadrant_size[1]/2, start_row + self.quadrant_size[0]/2])
-                        distances[0] = corners[0] - center[0]
-                        distances[1] = corners[1] - center[1]
+                        distances[0] = (corners[0] - center[0])/self.input_shape[1]
+                        distances[1] = (corners[1] - center[1])/self.input_shape[0]
                     #make entry in csv file
                     with open(self.csv_file, 'a') as f:
                         f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence) + ',' + str(distances[0]) + ',' + str(distances[1]) + '\n')
@@ -258,7 +259,6 @@ if __name__ == "__main__":
     image_dir = 'dataset/ActiveVision/'
     #list all directories in CNN_image_dir
     CNN_image_dirs = [file for file in os.listdir(CNN_image_dir) if os.path.isdir(os.path.join(CNN_image_dir, file))]
-
     for CNN_images in CNN_image_dirs:
         #Get csv file for each directory
         CNN_image_dir_internal = os.path.join(CNN_image_dir, CNN_images)
@@ -269,7 +269,7 @@ if __name__ == "__main__":
             os.makedirs(image_file)
         #Create dataset for each directory
         dataset = DatasetActive(image_file, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
-        #dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
+        dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
 
 
     train_dataset, val_dataset = dataset.createDataset(batch_size = 16)
@@ -291,8 +291,8 @@ if __name__ == "__main__":
             corner_y = labels[i][2]
             corner = center + np.array([corner_x, corner_y])
             image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(center.astype('int')+corner.astype('int')), (0, 0, 255), 2)
-        cv2.imshow("Image", image)
-        cv2.waitKey(0)
+        #cv2.imshow("Image", image)
+        #cv2.waitKey(0)
 
     
     print('done')
