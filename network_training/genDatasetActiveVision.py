@@ -148,7 +148,7 @@ class DatasetActive():
                         center = np.array([start_col + self.quadrant_size[1]/2, start_row + self.quadrant_size[0]/2])
                         distances[0] = (corners[0] - center[0])
                         distances[1] = (corners[1] - center[1])
-                        den = 1/(distances[0]**2+distances[1]**2)
+                        den = 1/np.sqrt((distances[0]**2+distances[1]**2))
                         distances *= den
                     #make entry in csv file
                     with open(self.csv_file, 'a') as f:
@@ -216,8 +216,8 @@ class DatasetActive():
         train_dataset = tf.data.Dataset.zip((image_ds.take(train_size), label_ds.take(train_size)))
         val_dataset = tf.data.Dataset.zip((image_ds.skip(train_size), label_ds.skip(train_size)))
         #Shuffle
-        train_dataset = train_dataset.shuffle(buffer_size=train_size)
-        val_dataset = val_dataset.shuffle(buffer_size=len(image_files) - train_size)
+        #train_dataset = train_dataset.shuffle(buffer_size=train_size)
+        #val_dataset = val_dataset.shuffle(buffer_size=len(image_files) - train_size)
         # Batch the dataset
         train_dataset = train_dataset.batch(batch_size)
         val_dataset = val_dataset.batch(batch_size)

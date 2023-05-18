@@ -16,7 +16,7 @@ device = '/device:GPU:2'
 # Define the input and output shapes of the model
 input_shape = (90,150,3) #quadrant size height, width, channels
 output_shape = (3,)
-batch_size = 16
+batch_size = 10
 
 #Define image directory
 dataset_dir = 'dataset/ActiveVision/'
