@@ -5,6 +5,7 @@ import os
 import copy
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 
 sys.path.append("network_creation")
 
@@ -50,13 +51,17 @@ with tf.device(device):
     model = createModelActiveVision(input_shape=input_shape)
     model.summary()
     # Train the model
-    model.fit(datasetTrain, epochs=100, validation_data=datasetVal, verbose = 1)
+    history = model.fit(datasetTrain, epochs=100, validation_data=datasetVal, verbose = 1)
 
-# Evaluate the model on the validation set
-valLoss, valAcc, _ = model.evaluate(datasetVal)
-print('Validation loss:', valLoss)
-print('Validation accuracy:', valAcc)
-
+#Plot loss
+plt.figure()
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Validation'], loc='upper right')
+plt.savefig('evalutation/activevision/Loss.png', format='png')
 # Visualize Predictions
 predictions = model.predict(datasetVal)
 imagesVal, labelsVal = next(iter(datasetVal))
@@ -68,12 +73,12 @@ for i in range(len(labelsVal)):
         #add arrow to image to show distance and angle
         center = np.array([input_shape[1]/2, input_shape[0]/2])
 
-        corner = np.array([predictions[i][1]*150,  predictions[i][2]*90])
+        corner = np.array([predictions[i][1]*150,  predictions[i][2]*150])
         corner = center + corner
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (255, 0, 0), 2)
 
         #add actual distance and angle
-        corner_val = center + np.array([labelsVal[i][1]*150, labelsVal[i][2]*90])
+        corner_val = center + np.array([labelsVal[i][1]*150, labelsVal[i][2]*150])
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     cv2.imwrite('evalutation/activevision/result'+ str(i) + '.png',image)
 

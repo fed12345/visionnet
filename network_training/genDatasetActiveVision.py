@@ -146,8 +146,10 @@ class DatasetActive():
                         #calculate distance and angle to top left corner from center of quadrant
                         confidence = 0
                         center = np.array([start_col + self.quadrant_size[1]/2, start_row + self.quadrant_size[0]/2])
-                        distances[0] = (corners[0] - center[0])/self.input_shape[1]
-                        distances[1] = (corners[1] - center[1])/self.input_shape[0]
+                        distances[0] = (corners[0] - center[0])
+                        distances[1] = (corners[1] - center[1])
+                        den = 1/(distances[0]**2+distances[1]**2)
+                        distances *= den
                     #make entry in csv file
                     with open(self.csv_file, 'a') as f:
                         f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence) + ',' + str(distances[0]) + ',' + str(distances[1]) + '\n')
@@ -182,7 +184,7 @@ class DatasetActive():
         """ 
 
         row =  self.labels_df[ self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
-        results = np.array([row['confidence'], row['corner_x'], row['corner_x']])
+        results = np.array([row['confidence'], row['corner_x'], row['corner_y']])
        
         return results.astype('float32')
 
@@ -213,7 +215,9 @@ class DatasetActive():
         train_size = int(0.8 * len(image_files))
         train_dataset = tf.data.Dataset.zip((image_ds.take(train_size), label_ds.take(train_size)))
         val_dataset = tf.data.Dataset.zip((image_ds.skip(train_size), label_ds.skip(train_size)))
-
+        #Shuffle
+        train_dataset = train_dataset.shuffle(buffer_size=train_size)
+        val_dataset = val_dataset.shuffle(buffer_size=len(image_files) - train_size)
         # Batch the dataset
         train_dataset = train_dataset.batch(batch_size)
         val_dataset = val_dataset.batch(batch_size)
@@ -283,15 +287,6 @@ def reconsturctImage(csv, image = 'img_1_'):
   
     cv2.imshow('Image',image)
     cv2.waitKey(0)
-
-    
-
-
-
-
-
-                    
-
 
 
 
