@@ -221,6 +221,11 @@ def createModelGateNet(input_shape = (180,120,3),l2_weight_decay=0.0002):
     output = tf.keras.layers.Reshape((8,))(dense_8)
 
     model = tf.keras.models.Model([input_tensor], output, name='model')
+    # Compile the model with loss function, optimizer, and metrics
+    model.compile(optimizer='adam',
+                loss='mse', #look into chamfer distance
+                metrics=['mae', 'mse']) #look into new metrics
+    
     return model
 if __name__ == '__main__':
     model = createModelGateNet(input_shape=(360, 360, 3))
