@@ -184,7 +184,7 @@ class DatasetActive():
         """ 
 
         row =  self.labels_df[ self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
-        results = np.array([row['confidence'], row['corner_x'], row['corner_y']])
+        results = np.array([row['confidence']*10, row['corner_x'], row['corner_y']])
        
         return results.astype('float32')
 

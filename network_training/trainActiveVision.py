@@ -14,14 +14,34 @@ from genDatasetActiveVision import DatasetActive
 
 device = '/device:GPU:2'
 # Define the input and output shapes of the model
-input_shape = (90,150,3) #quadrant size height, width, channels
+input_shape = (30,45,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 10
+epochs = 1
+dataset_dir = 'dataset/ActiveVision/'
+csv_name= 'data.csv'
+aware_quantization = True
+pruning = True
+save_model = False
+
+#==========================CODE=========================================================================================
+
+def visualizePredictionActiveVision(image, prediction, actual):
+    image = cv2.cvtColor((image.numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
+    if prediction[0] > 0.9:
+        image = cv2.applyColorMap(image, cv2.COLORMAP_SUMMER)
+    else:
+        #add arrow to image to show distance and angle
+        center = np.array([input_shape[1]/2, input_shape[0]/2])
+
+        corner = np.array([prediction[1]*150,  prediction[2]*150])
+        corner = center + corner
+        image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (255, 0, 0), 2)
 
 #Define image directory
 dataset_dir = 'dataset/ActiveVision/'
 
-image_dirs = [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
+image_dirs =['Austin1']# [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
 datasetTrain = None
 datasetVal = None
 for image_dir in image_dirs:

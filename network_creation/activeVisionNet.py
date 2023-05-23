@@ -6,20 +6,26 @@ import numpy as np
 #If it is, then the quadrant is 1, else 0
 #Then, extend output to 3 dimension (gate[0 or 1], distance to move for next quadrant, angle to move for next quadrant)
 
-def createModelActiveVision(input_shape=(64, 64, 3)):
+def createModelActiveVision(input_shape=(30, 45, 3)):
     # Define the model architecture
     model = tf.keras.Sequential([
         layers.InputLayer(input_shape=input_shape, name='input'),
-        layers.Conv2D(16, (3,3), activation='relu'),
+        layers.Conv2D(16, (3,3)),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
         layers.MaxPooling2D((2,2)),
-        layers.Conv2D(32, (3,3), activation='relu'),
+        layers.Conv2D(32, (3,3)),
+        layers.BatchNormalization(),
+        layers.Conv2D(16, (3,3)),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
         layers.MaxPooling2D((2,2)),
-        layers.Conv2D(16, (3,3), activation='relu'),
-        layers.MaxPooling2D((2,2)),
-        layers.Conv2D(16, (3,3), activation='linear'),
+        layers.Conv2D(16, (3,3)),
+        layers.BatchNormalization(),
+        layers.Activation('linear'),
         layers.MaxPooling2D((2,2)),
         layers.Flatten(),
-        layers.Dense(256, activation='linear'),
+        layers.Dense(64, activation='linear'),
         layers.Dense(3)
     ])
 
