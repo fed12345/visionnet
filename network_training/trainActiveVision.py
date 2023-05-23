@@ -18,12 +18,12 @@ from genDatasetActiveVision import DatasetActive
 
 
 #==========================PARAMETERS===================================================================================
-model = 'gatenet' #visionnet, dronet, gatenet, activevision
-device = '/device:GPU:2'
-input_shape = (180,120,3) #quadrant size height, width, channels
+model_name = 'gatenet' #visionnet, dronet, gatenet, activevision
+device = '/device:GPU:3'
+input_shape = (120,180,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 10
-epochs = 1
+epochs = 100
 dataset_dir = 'dataset/CNN/'
 csv_name= 'corners.csv'
 quantization = True
@@ -34,7 +34,6 @@ save_model = True
 
 def visualizePrediction(image, prediction, actual):
     image = cv2.cvtColor((image.numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     for i in range(0, len(prediction), 2):
         cv2.circle(image, (int(prediction[i]), int(prediction[i+1])), 10, (0, 0, 255), -1)
         cv2.circle(image, (int(actual[i]), int(actual[i+1])), 10, (0, 255, 0), -1)
@@ -57,21 +56,21 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     return image
 
-if model == 'activevision':
+if model_name == 'activevision':
     VisualizePrediction = visualizePredictionActiveVision
     createModel = createModelActiveVision
     Dataset = DatasetActive
-elif model == 'visionnet':
+elif model_name == 'visionnet':
     VisualizePrediction = visualizePrediction
     createModel = createModel
-elif model == 'dronet':
+elif model_name == 'dronet':
     VisualizePrediction = visualizePrediction
     createModel = createModelDronet
-elif model == 'gatenet':
+elif model_name == 'gatenet':
     VisualizePrediction = visualizePrediction
     createModel = createModelGateNet
 else:
-    print('Invalid model')
+    print('Invalid model name')
     exit()
 
 image_dirs = [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
@@ -110,9 +109,8 @@ if save_model:
     # Convert the TensorFlow model to a TensorFlow Lite model
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
-
     # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+model+'_base.tflite', 'wb') as f:
+    with open('evalutation/models/'+str(model_name)+'_base.tflite', 'wb') as f:
         f.write(tflite_model)
 
 plt.figure()
@@ -122,7 +120,7 @@ plt.title('Model Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend(['Train', 'Validation'], loc='upper right')
-plt.savefig('evalutation/activevision/Loss.png', format='png')
+plt.savefig('evalutation/Loss.png', format='png')
 baseline_accuracy = history.history['val_loss'][-1]
 
 
@@ -136,7 +134,7 @@ with strategy.scope():
         callbacks = [tfmot.sparsity.keras.UpdatePruningStep()]
         opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
         model.compile(optimizer=opt, loss='mse')
-        history = model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1, callbacks=callbacks)
+        history = model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1, callbacks=callbacks)
         #Remove pruning wrappers
         model = tfmot.sparsity.keras.strip_pruning(model)
         model.summary()
@@ -148,32 +146,35 @@ if save_model:
     tflite_model = converter.convert()
 
     # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+model+'_pruned.tflite', 'wb') as f:
+    with open('evalutation/models/'+str(model_name)+'_pruned.tflite', 'wb') as f:
         f.write(tflite_model)
 
 with strategy.scope():
     if quantization:
         #Apply QAT
         quant_model = tfmot.quantization.keras.quantize_model(model)
-        quant_model.compile(optimizer=opt, loss='mse')
-        history = quant_model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1)
+        quant_model.compile(optimizer='adam', loss='mse')
+        history = quant_model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1)
         quantization_accuracy = history.history['val_loss'][-1]
         model.summary()
 
-if save_model:
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    tflite_model = converter.convert()
+    if save_model:
+        converter = tf.lite.TFLiteConverter.from_keras_model(quant_model)
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        tflite_model = converter.convert()
 
-    # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+model+'_quant.tflite', 'wb') as f:
-        f.write(tflite_model)
-print('Baseline Accuracy: ' + str(baseline_accuracy))
-print('Pruning Accuracy: ' + str(pruning_accuracy))
-print('Quantization Accuracy: ' + str(quantization_accuracy))
+        # Save the TensorFlow Lite model to a file
+        with open('evalutation/models/'+str(model_name)+'_quant.tflite', 'wb') as f:
+            f.write(tflite_model)
+
 # Visualize Predictions
 predictions = model.predict(datasetVal)
 imagesVal, labelsVal = next(iter(datasetVal))
 for i in range(len(labelsVal)):
-     cv2.imwrite('visionnet/network/visionnet/evalutation/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
+     cv2.imwrite('evalutation/cnn/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
+
+print('Baseline Accuracy: ' + str(baseline_accuracy))
+print('Pruning Accuracy: ' + str(pruning_accuracy))
+print('Quantization Accuracy: ' + str(quantization_accuracy))
 print('done')
 
