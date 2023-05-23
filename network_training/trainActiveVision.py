@@ -18,15 +18,15 @@ from genDatasetActiveVision import DatasetActive
 
 
 #==========================PARAMETERS===================================================================================
-model_name = 'gatenet' #visionnet, dronet, gatenet, activevision
-device = '/device:GPU:3'
+model_name = 'dronet' #visionnet, dronet, gatenet, activevision
+device = '/device:GPU:2'
 input_shape = (120,180,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 10
 epochs = 100
 dataset_dir = 'dataset/CNN/'
 csv_name= 'corners.csv'
-quantization = True
+aware_quantization = False
 pruning = True
 save_model = True
 
@@ -66,6 +66,9 @@ elif model_name == 'visionnet':
 elif model_name == 'dronet':
     VisualizePrediction = visualizePrediction
     createModel = createModelDronet
+    if aware_quantization:
+        print('Aware Quantization Not Supported for Dronet')
+        exit()
 elif model_name == 'gatenet':
     VisualizePrediction = visualizePrediction
     createModel = createModelGateNet
@@ -110,7 +113,7 @@ if save_model:
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
     # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+str(model_name)+'_base.tflite', 'wb') as f:
+    with open('evalutation/models_test/'+model_name+'_base.tflite', 'wb') as f:
         f.write(tflite_model)
 
 plt.figure()
@@ -143,6 +146,7 @@ with strategy.scope():
 
 if save_model:
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.EXPERIMENTAL_SPARSITY]
     tflite_model = converter.convert()
 
     # Save the TensorFlow Lite model to a file
@@ -150,23 +154,23 @@ if save_model:
         f.write(tflite_model)
 
 with strategy.scope():
-    if quantization:
-        #Apply QAT
-        quant_model = tfmot.quantization.keras.quantize_model(model)
-        quant_model.compile(optimizer='adam', loss='mse')
-        history = quant_model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1)
+    if aware_quantization:
+
+        model = tfmot.quantization.keras.quantize_apply(model)
+        
+        model.compile(optimizer=opt, loss='mse')
+        history = model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1)
         quantization_accuracy = history.history['val_loss'][-1]
         model.summary()
 
     if save_model:
-        converter = tf.lite.TFLiteConverter.from_keras_model(quant_model)
+        converter = tf.lite.TFLiteConverter.from_keras_model(model)
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         tflite_model = converter.convert()
 
         # Save the TensorFlow Lite model to a file
-        with open('evalutation/models/'+str(model_name)+'_quant.tflite', 'wb') as f:
+        with open('evalutation/models_test/'+model_name+'_quant.tflite', 'wb') as f:
             f.write(tflite_model)
-
 # Visualize Predictions
 predictions = model.predict(datasetVal)
 imagesVal, labelsVal = next(iter(datasetVal))
