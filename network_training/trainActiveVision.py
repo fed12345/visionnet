@@ -18,15 +18,15 @@ from genDatasetActiveVision import DatasetActive
 
 
 #==========================PARAMETERS===================================================================================
-model_name = 'dronet' #visionnet, dronet, gatenet, activevision
-device = '/device:GPU:2'
+model_name = 'gatenet' #visionnet, dronet, gatenet, activevision
+device = '/device:GPU:3'
 input_shape = (120,180,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 10
 epochs = 100
 dataset_dir = 'dataset/CNN/'
 csv_name= 'corners.csv'
-aware_quantization = False
+aware_quantization = True
 pruning = True
 save_model = True
 
@@ -113,7 +113,7 @@ if save_model:
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
     # Save the TensorFlow Lite model to a file
-    with open('evalutation/models_test/'+model_name+'_base.tflite', 'wb') as f:
+    with open('evalutation/models/'+model_name+'_base.tflite', 'wb') as f:
         f.write(tflite_model)
 
 plt.figure()
@@ -156,10 +156,10 @@ if save_model:
 with strategy.scope():
     if aware_quantization:
 
-        model = tfmot.quantization.keras.quantize_apply(model)
+        model = tfmot.quantization.keras.quantize_model(model)
         
-        model.compile(optimizer=opt, loss='mse')
-        history = model.fit(datasetTrain, epochs=1, validation_data=datasetVal, verbose = 1)
+        model.compile(optimizer='adam', loss='mse')
+        history = model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1)
         quantization_accuracy = history.history['val_loss'][-1]
         model.summary()
 
@@ -169,7 +169,7 @@ with strategy.scope():
         tflite_model = converter.convert()
 
         # Save the TensorFlow Lite model to a file
-        with open('evalutation/models_test/'+model_name+'_quant.tflite', 'wb') as f:
+        with open('evalutation/models/'+model_name+'_quant.tflite', 'wb') as f:
             f.write(tflite_model)
 # Visualize Predictions
 predictions = model.predict(datasetVal)
