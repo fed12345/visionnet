@@ -14,11 +14,11 @@ from genDatasetActiveVision import DatasetActive
 
 device = '/device:GPU:2'
 # Define the input and output shapes of the model
-input_shape = (30,45,3) #quadrant size height, width, channels
+input_shape = (40,60,3) #quadrant size height, width, channels
 output_shape = (3,)
 batch_size = 10
 epochs = 1
-dataset_dir = 'dataset/ActiveVision/'
+dataset_dir = 'dataset/ActiveVisionClassification/'
 csv_name= 'data.csv'
 aware_quantization = True
 pruning = True
@@ -39,9 +39,9 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (255, 0, 0), 2)
 
 #Define image directory
-dataset_dir = 'dataset/ActiveVision/'
 
-image_dirs =['Austin1']# [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
+
+image_dirs = [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
 datasetTrain = None
 datasetVal = None
 for image_dir in image_dirs:
@@ -85,23 +85,30 @@ plt.savefig('evalutation/activevision/Loss.png', format='png')
 # Visualize Predictions
 predictions = model.predict(datasetVal)
 imagesVal, labelsVal = next(iter(datasetVal))
+
+position = (0, 0) 
+# Define the font properties
+font = cv2.FONT_HERSHEY_SIMPLEX
+font_scale = 50
+font_color = (0, 0, 255)  # White color in BGR format
+line_thickness = 10
+
+
 for i in range(len(labelsVal)):
     image = cv2.cvtColor((imagesVal[i].numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
     if predictions[i][0] > 0.9:
-        image = cv2.applyColorMap(image, cv2.COLORMAP_SUMMER)
-    else:
-        #add arrow to image to show distance and angle
-        center = np.array([input_shape[1]/2, input_shape[0]/2])
-
-        corner = np.array([predictions[i][1]*150,  predictions[i][2]*150])
-        corner = center + corner
-        image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner.astype('int')), (255, 0, 0), 2)
-
-        #add actual distance and angle
-        corner_val = center + np.array([labelsVal[i][1]*150, labelsVal[i][2]*150])
-        image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
+        text = 'TL'
+        cv2.putText(image, text, position, font, font_scale, font_color, line_thickness)
+    if predictions[i][1] > 0.9:
+        text = 'TP'
+        cv2.putText(image, text, position, font, font_scale, font_color, line_thickness)
+    if predictions[i][1] > 0.9:
+        text = 'BL'
+        cv2.putText(image, text, position, font, font_scale, font_color, line_thickness)
+    if predictions[i][1] > 0.9:
+        text = 'BR'
+        cv2.putText(image, text, position, font, font_scale, font_color, line_thickness)
     cv2.imwrite('evalutation/activevision/result'+ str(i) + '.png',image)
-
 # Convert the TensorFlow model to a TensorFlow Lite model
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()

@@ -46,6 +46,27 @@ def selectTopLeftCorner(corners):
     else:
         return corner2
 
+def find_corner_positions(gate_corners):
+    # Sort the corners by their x-coordinate
+    sorted_corners = sorted(gate_corners, key=lambda corner: corner[0])
+
+    # Determine top left and top right corners based on y-coordinate
+    if sorted_corners[0][1] < sorted_corners[1][1]:
+        top_left = sorted_corners[0]
+        top_right = sorted_corners[1]
+    else:
+        top_left = sorted_corners[1]
+        top_right = sorted_corners[0]
+
+    # Determine bottom left and bottom right corners based on y-coordinate
+    if sorted_corners[2][1] < sorted_corners[3][1]:
+        bottom_left = sorted_corners[2]
+        bottom_right = sorted_corners[3]
+    else:
+        bottom_left = sorted_corners[3]
+        bottom_right = sorted_corners[2]
+
+    return [top_left, top_right, bottom_left, bottom_right]
 
     
 
@@ -80,12 +101,13 @@ class DatasetActive():
     
 
 
-        corners = [(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]
-        top_left_corner=selectTopLeftCorner(corners)
-        #Normalize the corners to input shape
-        top_left_corner = top_left_corner*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
         
-        return top_left_corner.astype('float32')
+        corners = [(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]
+        multiplied_corners = []
+        for corner in corners:
+            multiplied_corner = (corner[0] *self.input_shape[1]/image_shape[1], corner[1] * self.input_shape[1]/image_shape[1])
+            multiplied_corners.append(multiplied_corner)
+        return multiplied_corners
     
 
     def preProcess(self, CNN_image_dir, CNN_csv_corners):
@@ -100,7 +122,7 @@ class DatasetActive():
             numpy array: corners
         """
         with open(self.csv_file, 'a') as f:
-            f.write('filename' + ',' + 'confidence' + ',' + 'corner_x' + ',' + 'corner_y' + '\n')
+            f.write('filename' + ',' + 'top_left' + ',' + 'top_right' + ',' + 'bottom_left' + ',' + 'bottom_right' +  '\n')
 
         corners_labels_df = pd.read_csv(CNN_csv_corners)
         image_files = [file for file in os.listdir(CNN_image_dir) if file.endswith('.png')]
@@ -137,22 +159,19 @@ class DatasetActive():
                     # cv2.waitKey(0)
                     
                     # load top left corner
-                    corners = self._loadCorners(i, image_org.shape, corners_labels_df)[:2]
+                    corners = self._loadCorners(i, image_org.shape, corners_labels_df)
 
-                    # corner is in quadrant
-                    confidence = 1
-                    distances = np.zeros(2)
-                    if (corners[0]<start_col or corners[0]>end_col or corners[1]<start_row or corners[1]>end_row):
-                        #calculate distance and angle to top left corner from center of quadrant
-                        confidence = 0
-                        center = np.array([start_col + self.quadrant_size[1]/2, start_row + self.quadrant_size[0]/2])
-                        distances[0] = (corners[0] - center[0])
-                        distances[1] = (corners[1] - center[1])
-                        den = 1/np.sqrt((distances[0]**2+distances[1]**2))
-                        distances *= den
+                    sorted_corners = find_corner_positions(corners)
+                    confidence = [0,0,0,0]
+                    for l in range(len(sorted_corners)):
+                        col, row = sorted_corners[l]
+                        if start_row <= row <= end_row and start_col <= col <= end_col:
+                            confidence[l] = 1
+
+                    
                     #make entry in csv file
                     with open(self.csv_file, 'a') as f:
-                        f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence) + ',' + str(distances[0]) + ',' + str(distances[1]) + '\n')
+                        f.write(i[:-4] + '_' + str(counter) + '.png' + ',' + str(confidence[0]) + ',' + str(confidence[1]) + ',' + str(confidence[2]) + ',' + str(confidence[3]) + '\n')
         
         print('Preprocessing done')
                     
@@ -169,7 +188,7 @@ class DatasetActive():
         image_dir = tf.io.read_file(filename)
         image = tf.io.decode_png(image_dir, channels = 3)
         image = tf.cast(image, tf.float32)*(1/255)
-        return image   
+        return image 
 
     
 
@@ -184,9 +203,9 @@ class DatasetActive():
         """ 
 
         row =  self.labels_df[ self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
-        results = np.array([row['confidence']*10, row['corner_x'], row['corner_y']])
+        results = np.array([row['top_left'], row['top_right'], row['bottom_left'], row['bottom_right']])
        
-        return results.astype('float32')
+        return results.astype('int8')
 
 
 
@@ -294,7 +313,7 @@ if __name__ == "__main__":
 
     CNN_image_dir = 'dataset/CNN/'
 
-    image_dir = 'dataset/ActiveVision/'
+    image_dir = 'dataset/ActiveVisionClassification/'
     #list all directories in CNN_image_dir
     CNN_image_dirs = [file for file in os.listdir(CNN_image_dir) if os.path.isdir(os.path.join(CNN_image_dir, file))]
     for CNN_images in CNN_image_dirs:
@@ -306,7 +325,7 @@ if __name__ == "__main__":
         if not os.path.isdir(image_file):
             os.makedirs(image_file)
         #Create dataset for each directory
-        dataset = DatasetActive(image_file, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
+        dataset = DatasetActive(image_file, csv_file, input_shape=(120, 180, 3), output_shape=(3), quadrant_size=(40, 60))
         dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
 
 

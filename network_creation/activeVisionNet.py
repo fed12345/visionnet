@@ -22,17 +22,17 @@ def createModelActiveVision(input_shape=(30, 45, 3)):
         layers.MaxPooling2D((2,2)),
         layers.Conv2D(16, (3,3)),
         layers.BatchNormalization(),
-        layers.Activation('linear'),
+        layers.Activation('relu'),
         layers.MaxPooling2D((2,2)),
         layers.Flatten(),
-        layers.Dense(64, activation='linear'),
-        layers.Dense(3)
+        layers.Dense(64, activation='relu'),
+        layers.Dense(4)
     ])
 
     # Compile the model with loss function, optimizer, and metrics l bvc;
     model.compile(optimizer='adam',
                 loss='mse', #look into chamfer distance
-                metrics=['mae', 'mse']) #look into new metrics
+                metrics=['mse']) #look into new metrics
     
     return model
 
