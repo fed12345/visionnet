@@ -69,7 +69,7 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
         converter = tf.lite.TFLiteConverter.from_keras_model(model)
         tflite_model = converter.convert()
         # Save the TensorFlow Lite model to a file
-        with open('evalutation/models_test/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_base.tflite', 'wb') as f:
+        with open('evalutation/models/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_base.tflite', 'wb') as f:
             f.write(tflite_model)
 
     plt.figure()
@@ -125,7 +125,7 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
             tflite_model = converter.convert()
 
             # Save the TensorFlow Lite model to a file
-            with open('evalutation/models_test/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_quant.tflite', 'wb') as f:
+            with open('evalutation/models/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_quant.tflite', 'wb') as f:
                 f.write(tflite_model)
     # Visualize Predictions
     predictions = model.predict(datasetVal)
