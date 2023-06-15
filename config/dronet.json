@@ -1,0 +1,20 @@
+{
+    "model" : "dronet",  
+    "device": "/device:GPU:2",
+    "input_shape": [
+        120,
+        180,
+        3
+    ],
+    "output_shape": [
+        8
+    ],
+    "batch_size": 10,
+    "epochs": 100,
+    "epochs_optimization": 10,
+    "dataset_dir": "dataset/CNN/",
+    "csv_name": "corners.csv",
+    "aware_quantization": false,
+    "pruning": true,
+    "save_model": true
+}

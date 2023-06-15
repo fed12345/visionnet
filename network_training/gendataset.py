@@ -48,9 +48,9 @@ class Dataset:
         #Determine size of dataset image
         image_shape = (cv2.imread(filename.numpy().decode('utf-8'))).shape
         # Normalize the corners to input shape 
-        corners = corners*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
-                                    self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
-                                    self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
+        corners = corners*np.array([1/image_shape[1], 1/image_shape[0], 1/image_shape[1], 
+                                    1/image_shape[0], 1/image_shape[1], 1/image_shape[0], 
+                                    1/image_shape[1], 1/image_shape[0]])
         # TODO: what if there is more than gate in image? --> confidence value
 
         return corners.astype('float32')
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     for i in range(len(images)):
         image = cv2.cvtColor((images[i].numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
         for j in range(0, len(labels[i]), 2):
-            cv2.circle(image, (int(labels[i][j]), int(labels[i][j+1])), 10, (0, 255, 0), -1)
+            cv2.circle(image, (int(labels[i][j]*input_shape[1]), int(labels[i][j+1]*input_shape[0])), 10, (0, 255, 0), -1)
         cv2.imshow("Image", image)
         cv2.waitKey(0)
     print('done')

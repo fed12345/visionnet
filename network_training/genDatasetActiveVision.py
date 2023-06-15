@@ -114,7 +114,7 @@ class DatasetActive():
         num_cols= int(self.input_shape[1]/self.quadrant_size[1])
     
         for i in image_files:
-            image_org = cv2.imread( os.path.join( CNN_image_dir, i))
+            image_org = cv2.imread(os.path.join( CNN_image_dir, i))
             
             image = cv2.resize(image_org, self.input_shape[:2][::-1])
             
@@ -236,7 +236,7 @@ def reconsturctImage(csv, image = 'img_1_'):
         image (str, optional): _description_. Defaults to 'img_1'.
     """  
     #Find all quadrants for image
-    quadrants = [f for f in os.listdir('dataset/ActiveVision/Austin1_quadrants') if f.startswith(image)]
+    quadrants = [f for f in os.listdir('dataset/ActiveVision/Austin1') if f.startswith(image)]
     #Sort quadrants based on number after img_1_
     quadrants.sort(key=lambda x: int(x.split('_')[2].split('.')[0]))
     
@@ -252,24 +252,24 @@ def reconsturctImage(csv, image = 'img_1_'):
         quadrant_dict['corner_y'].append(row['corner_y'].values[0])
 
     #Find Center of quadrant large image
-    shape = (4,4)
+    shape = (3,3)
     for i in range(shape[0]):
-        start_row = i*90
+        start_row = i*40
         for j in range(shape[1]):
-            start_col = j*150
-            quadrant_dict['center_x'].append(start_col+75)
-            quadrant_dict['center_y'].append(start_row+45)
+            start_col = j*60
+            quadrant_dict['center_x'].append(start_col+20)
+            quadrant_dict['center_y'].append(start_row+30)
     
 
     # Initialize variables
     image_rows = []
-    row_lengths = [4, 4, 4, 4]  # Each row contains 4 images
+    row_lengths = [3, 3, 3]  # Each row contains 4 images
     start_idx = 0
     # Create rows
     for row_len in row_lengths:
-        row = cv2.imread(os.path.join('dataset/ActiveVision/Austin2_quadrants', quadrant_dict['name'][start_idx]))
+        row = cv2.imread(os.path.join('dataset/ActiveVision/Austin1', quadrant_dict['name'][start_idx]))
         for i in range(start_idx + 1, start_idx + row_len):
-            img_arrow = cv2.imread(os.path.join('dataset/ActiveVision/Austin2_quadrants', quadrant_dict['name'][i]))
+            img_arrow = cv2.imread(os.path.join('dataset/ActiveVision/Austin1', quadrant_dict['name'][i]))
             row = np.hstack((row, img_arrow ))
         image_rows.append(row)
         start_idx += row_len
@@ -281,8 +281,8 @@ def reconsturctImage(csv, image = 'img_1_'):
         if quadrant_dict['confidence'][i] == 1:
             continue
         #Add Arrow from center of quadrant to corner
-        image = cv2.arrowedLine(image, (int(quadrant_dict['center_x'][i]), int(quadrant_dict['center_y'][i])), (int(quadrant_dict['corner_x'][i]+quadrant_dict['center_x'][i]), 
-                                                                                                                int(quadrant_dict['corner_y'][i]+quadrant_dict['center_y'][i])), 
+        image = cv2.arrowedLine(image, (int(quadrant_dict['center_x'][i]), int(quadrant_dict['center_y'][i])), (int(quadrant_dict['corner_x'][i]*5+quadrant_dict['center_x'][i]), 
+                                                                                                                int(quadrant_dict['corner_y'][i]*5+quadrant_dict['center_y'][i])), 
                                                                                                                 (0,0,255), 1, tipLength=0.01)
   
     cv2.imshow('Image',image)
@@ -296,7 +296,7 @@ if __name__ == "__main__":
 
     image_dir = 'dataset/ActiveVision/'
     #list all directories in CNN_image_dir
-    CNN_image_dirs = [file for file in os.listdir(CNN_image_dir) if os.path.isdir(os.path.join(CNN_image_dir, file))]
+    CNN_image_dirs = ['Austin1']#[file for file in os.listdir(CNN_image_dir) if os.path.isdir(os.path.join(CNN_image_dir, file))]
     for CNN_images in CNN_image_dirs:
         #Get csv file for each directory
         CNN_image_dir_internal = os.path.join(CNN_image_dir, CNN_images)
@@ -306,8 +306,8 @@ if __name__ == "__main__":
         if not os.path.isdir(image_file):
             os.makedirs(image_file)
         #Create dataset for each directory
-        dataset = DatasetActive(image_file, csv_file, input_shape=(360, 600, 3), output_shape=(3), quadrant_size=(90, 150))
-        dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
+        dataset = DatasetActive(image_file, csv_file, input_shape=(120, 180, 3), output_shape=(3), quadrant_size=(40, 60))
+        #dataset.preProcess(CNN_image_dir_internal, CNN_csv_corners)
 
 
     train_dataset, val_dataset = dataset.createDataset(batch_size = 16)
@@ -331,6 +331,6 @@ if __name__ == "__main__":
             image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(center.astype('int')+corner.astype('int')), (0, 0, 255), 2)
         #cv2.imshow("Image", image)
         #cv2.waitKey(0)
-
+    reconsturctImage('dataset/ActiveVision/Austin1/data.csv', image = 'img_10_')
     
     print('done')

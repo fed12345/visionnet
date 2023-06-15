@@ -1,42 +1,62 @@
 import sys
 import cv2
-import csv
 import os
-import copy
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow_model_optimization as tfmot
+import json
+import argparse
 
 sys.path.append("network_creation")
 sys.path.append("visionnet/network/visionnet/network_creation/")
 
+from networktraining import trainNetwork
 from visionnet import createModel, createModelDronet, createModelGateNet
 from gendataset import Dataset
 from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
 
-
 #==========================PARAMETERS===================================================================================
-model_name = 'gatenet' #visionnet, dronet, gatenet, activevision
-device = '/device:GPU:3'
-input_shape = (120,180,3) #quadrant size height, width, channels
-output_shape = (3,)
-batch_size = 10
-epochs = 100
-dataset_dir = 'dataset/CNN/'
-csv_name= 'corners.csv'
-aware_quantization = True
-pruning = True
-save_model = True
+# Create an argument parser
+parser = argparse.ArgumentParser(description='Process configuration file.')
 
+# Add an argument for the config file
+parser.add_argument('--config', '-c', required=True, help='Path to the config file')
+
+# Parse the command-line arguments
+args = parser.parse_args()
+
+with open(args.config, 'r') as file:
+    json_data = file.read()
+
+# Parse the JSON data into a dictionary
+parameters = json.loads(json_data)
+
+# Access the parameters
+model_name = parameters['model']
+device = parameters['device']
+input_shape = parameters['input_shape']
+output_shape = parameters['output_shape']
+batch_size = parameters['batch_size']
+epochs = parameters['epochs']
+epochs_optimization = parameters['epochs_optimization']
+dataset_dir = parameters['dataset_dir']
+csv_name = parameters['csv_name']
+aware_quantization = parameters['aware_quantization']
+pruning = parameters['pruning']
+save_model = parameters['save_model']
+
+input_shapes = [(240,380,3),(180,270,3),(input_shape), (100,150,3), (80,120,3), (60,90,3), (40,60,3), (20,30,3)]
 #==========================CODE=========================================================================================
+#plot accuracies
+
 
 def visualizePrediction(image, prediction, actual):
     image = cv2.cvtColor((image.numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
     for i in range(0, len(prediction), 2):
-        cv2.circle(image, (int(prediction[i]), int(prediction[i+1])), 10, (0, 0, 255), -1)
-        cv2.circle(image, (int(actual[i]), int(actual[i+1])), 10, (0, 255, 0), -1)
+        cv2.circle(image, (int(prediction[i]*input_shape[1]), int(prediction[i+1]*input_shape[0])), 10, (0, 0, 255), -1)
+        cv2.circle(image, (int(actual[i]*input_shape[1]), int(actual[i+1]*input_shape[0])), 10, (0, 255, 0), -1)
     return image
 
 def visualizePredictionActiveVision(image, prediction, actual):
@@ -56,129 +76,20 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     return image
 
-if model_name == 'activevision':
-    VisualizePrediction = visualizePredictionActiveVision
-    createModel = createModelActiveVision
-    Dataset = DatasetActive
-elif model_name == 'visionnet':
-    VisualizePrediction = visualizePrediction
-    createModel = createModel
-elif model_name == 'dronet':
-    VisualizePrediction = visualizePrediction
-    createModel = createModelDronet
-    if aware_quantization:
-        print('Aware Quantization Not Supported for Dronet')
-        exit()
-elif model_name == 'gatenet':
-    VisualizePrediction = visualizePrediction
-    createModel = createModelGateNet
-else:
-    print('Invalid model name')
-    exit()
 
-image_dirs = [files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
-datasetTrain = None
-datasetVal = None
-for image_dir in image_dirs:
+accuracies = []
+for input_shape in input_shapes:
+    predictions, imagesVal, labelsVal, accuracy = trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
+    accuracies.append(accuracy)
 
-    #Define csv file
-    csv_file = os.path.join(dataset_dir,image_dir,csv_name)
+#plot accuracies
+plt.plot(input_shapes, accuracies)
+plt.xlabel('input shape')
+plt.ylabel('mse')
+plt.savefig('evalutation/accuracies.png')
 
-    #initialize the dataset
-    dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
-
-    #Generate the datasets
-    train, val = dataset.createDataset(batch_size=batch_size)
-
-    #Combine the datasets
-    if datasetTrain == None:
-        datasetTrain = train
-        datasetVal = val
-    else:
-        datasetTrain = datasetTrain.concatenate(train)
-        datasetVal = datasetVal.concatenate(val)
-
-print('Datasets Ready')
-
-strategy = tf.distribute.OneDeviceStrategy(device=device)
-with strategy.scope():
-    # Create the model
-    model = createModel(input_shape=input_shape)
-    model.summary()
-    # Train the model
-    history = model.fit(datasetTrain, epochs=epochs, validation_data=datasetVal, verbose = 1)
-
-if save_model:
-    # Convert the TensorFlow model to a TensorFlow Lite model
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    tflite_model = converter.convert()
-    # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+model_name+'_base.tflite', 'wb') as f:
-        f.write(tflite_model)
-
-plt.figure()
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('Model Loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.legend(['Train', 'Validation'], loc='upper right')
-plt.savefig('evalutation/Loss.png', format='png')
-baseline_accuracy = history.history['val_loss'][-1]
-
-
-with strategy.scope():
-    if pruning:
-        #Prune the model
-        pruning_params = {'pruning_schedule': tfmot.sparsity.keras.ConstantSparsity(0.5, begin_step=0, frequency=100)}
-        model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
-        model.summary()
-        #Train the model
-        callbacks = [tfmot.sparsity.keras.UpdatePruningStep()]
-        opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
-        model.compile(optimizer=opt, loss='mse')
-        history = model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1, callbacks=callbacks)
-        #Remove pruning wrappers
-        model = tfmot.sparsity.keras.strip_pruning(model)
-        model.summary()
-        pruning_accuracy = history.history['val_loss'][-1]
-        # Convert the TensorFlow model to a TensorFlow Lite model
-
-if save_model:
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.EXPERIMENTAL_SPARSITY]
-    tflite_model = converter.convert()
-
-    # Save the TensorFlow Lite model to a file
-    with open('evalutation/models/'+str(model_name)+'_pruned.tflite', 'wb') as f:
-        f.write(tflite_model)
-
-with strategy.scope():
-    if aware_quantization:
-
-        model = tfmot.quantization.keras.quantize_model(model)
-        
-        model.compile(optimizer='adam', loss='mse')
-        history = model.fit(datasetTrain, epochs=10, validation_data=datasetVal, verbose = 1)
-        quantization_accuracy = history.history['val_loss'][-1]
-        model.summary()
-
-    if save_model:
-        converter = tf.lite.TFLiteConverter.from_keras_model(model)
-        converter.optimizations = [tf.lite.Optimize.DEFAULT]
-        tflite_model = converter.convert()
-
-        # Save the TensorFlow Lite model to a file
-        with open('evalutation/models/'+model_name+'_quant.tflite', 'wb') as f:
-            f.write(tflite_model)
-# Visualize Predictions
-predictions = model.predict(datasetVal)
-imagesVal, labelsVal = next(iter(datasetVal))
 for i in range(len(labelsVal)):
      cv2.imwrite('evalutation/cnn/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
 
-print('Baseline Accuracy: ' + str(baseline_accuracy))
-print('Pruning Accuracy: ' + str(pruning_accuracy))
-print('Quantization Accuracy: ' + str(quantization_accuracy))
 print('done')
 
