@@ -5,3 +5,4 @@ dataset/*
 *.pyc
 dataset/
 evaluation/
+config/

@@ -114,7 +114,7 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
 
             model = tfmot.quantization.keras.quantize_model(model)
             
-            model.compile(optimizer=opt, loss='mse')
+            model.compile(optimizer='adam', loss='mse')
             history = model.fit(datasetTrain, epochs=epochs_optimization, validation_data=datasetVal, verbose = 1)
             quantization_accuracy = history.history['val_loss'][-1]
             model.summary()
@@ -131,4 +131,5 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
     predictions = model.predict(datasetVal)
     imagesVal, labelsVal = next(iter(datasetVal))
     return predictions, imagesVal, labelsVal, baseline_accuracy
+
 
