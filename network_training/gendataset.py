@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from util import areaOfGate
 
 class Dataset:
     def __init__(self, image_dir, csv_file, input_shape, output_shape):
@@ -42,8 +43,16 @@ class Dataset:
             numpy array: corners
         """ 
 
-        row =  self.labels_df[self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))].iloc[0]
-        corners = np.array([row['corner1_x'], row['corner1_y'], row['corner2_x'], row['corner2_y'], row['corner3_x'], row['corner3_y'], row['corner4_x'], row['corner4_y']])
+        rows =  self.labels_df[self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))]
+        biggest_area = 0
+        for i in range(len(rows)):
+            row = rows.iloc[i]
+            area = areaOfGate((row['corner1_x'], row['corner1_y']), (row['corner2_x'], row['corner2_y']), (row['corner3_x'], row['corner3_y']), (row['corner4_x'], row['corner4_y']))
+            if area > biggest_area:
+                biggest_area = area
+                biggest_row = row
+            
+        corners = np.array([(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]).flatten()
        
         #Determine size of dataset image
         image_shape = (cv2.imread(filename.numpy().decode('utf-8'))).shape
@@ -51,7 +60,6 @@ class Dataset:
         corners = corners*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
                                     self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
                                     self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
-        # TODO: what if there is more than gate in image? --> confidence value
 
         return corners.astype('float32')
 
