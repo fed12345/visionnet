@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from util import areaOfGate
+from util import areaOfGate, skewOfGate, centerOfGate
 
 class Dataset:
     def __init__(self, image_dir, csv_file, input_shape, output_shape):
@@ -61,8 +61,17 @@ class Dataset:
                                     self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
                                     self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
 
-        return corners.astype('float32')
+        #Caclutate Area of Gate
+        area = areaOfGate((corners[0], corners[1]), (corners[2], corners[3]), (corners[4], corners[5]), (corners[6], corners[7]))
+        
+        #Calculate center of gate
+        center = centerOfGate((corners[0], corners[1]), (corners[2], corners[3]), (corners[4], corners[5]), (corners[6], corners[7]))
 
+        #Calculate skew of gate
+        skew = skewOfGate((corners[0], corners[1]), (corners[2], corners[3]), (corners[4], corners[5]), (corners[6], corners[7]))
+    
+
+        return np.array(area,center[0],center[1],skew*10).astype('float32')
 
 
     
