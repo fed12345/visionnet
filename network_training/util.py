@@ -85,3 +85,49 @@ def skewOfGate(corner1,corner2,corner3,corner4):
     skew = np.max(((np.max(angle_deviations) -pihalf)/pihalf), ((pihalf - np.min(angle_deviations))/pihalf))
 
     return skew
+
+def rgb2bayer(rgb_image):
+    height, width, _ = rgb_image.shape
+    print(height, width)
+    bayer_image = np.zeros((height, width ), dtype=np.uint8)
+
+    for i in range(height):
+        for j in range(width):
+            # Determine the color channel of the current pixel
+            if i % 2 == 0:
+                if j % 2 == 0:
+                    channel = 'R'  # Red pixel
+                else:
+                    channel = 'G'  # Green pixel in even rows
+            else:
+                if j % 2 == 0:
+                    channel = 'G'  # Green pixel in odd rows
+                else:
+                    channel = 'B'  # Blue pixel
+
+            # Assign the color channel value to the Bayer image
+            if channel == 'R':
+                bayer_image[i, j] = rgb_image[i, j, 0]
+            elif channel == 'G':
+                bayer_image[i, j] = rgb_image[i, j, 1]
+            else:  # channel == 'B'
+                bayer_image[i, j] = rgb_image[i, j, 2]
+
+    return bayer_image
+
+
+if __name__ == "__main__":
+    #perform unit tests
+    
+    #test bayer conversion
+    import cv2
+    import tensorflow as tf
+
+    img_dir = 'dataset/CNN/Austin1/img_1.png'
+    image_file = tf.io.read_file(img_dir)
+    img = tf.io.decode_png(image_file, channels = 3)
+    img = tf.image.resize(img, [120,180])
+    bayer = rgb2bayer(img)
+    rgb_image = cv2.cvtColor(bayer, cv2.COLOR_BAYER_RG2BGR)
+    cv2.imshow('bayer',rgb_image)
+    cv2.waitKey(0)
