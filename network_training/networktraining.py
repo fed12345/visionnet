@@ -59,7 +59,7 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
     strategy = tf.distribute.OneDeviceStrategy(device=device)
     with strategy.scope():
         # Create the model
-        model = createModel(input_shape=input_shape)
+        model = createModel(input_shape=input_shape, output_shape=output_shape)
         model.summary()
         # Train the model
         history = model.fit(datasetTrain, epochs=epochs, validation_data=datasetVal, verbose = 1)

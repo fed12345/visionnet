@@ -70,10 +70,10 @@ def skewOfGate(corner1,corner2,corner3,corner4):
     # compute the skew of the gate
     
     # Convert vertices to numpy array for easy calculations
-    vertices = np.array(corner1,corner2,corner3,corner4)
+    vertices = [corner1,corner2,corner3,corner4]
     
     # Calculate the centroid of the quadrilateral
-    centroid = np.mean(vertices, axis=0)
+    centroid = centerOfGate(corner1,corner2,corner3,corner4)
     
     # Calculate the angle deviations from the centroid for each vertex
     angle_deviations = []
@@ -82,6 +82,6 @@ def skewOfGate(corner1,corner2,corner3,corner4):
         dy = vertex[1] - centroid[1]
         angle_deviations.append(np.arctan2(dy, dx))
     pihalf = np.pi/2
-    skew = np.max(((np.max(angle_deviations) -pihalf)/pihalf), ((pihalf - np.min(angle_deviations))/pihalf))
+    skew = np.max(np.array([((np.max(angle_deviations) -pihalf)/pihalf), ((pihalf - np.min(angle_deviations))/pihalf)]))
 
     return skew

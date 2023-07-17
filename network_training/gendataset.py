@@ -71,7 +71,7 @@ class Dataset:
         skew = skewOfGate((corners[0], corners[1]), (corners[2], corners[3]), (corners[4], corners[5]), (corners[6], corners[7]))
     
 
-        return np.array(area,center[0],center[1],skew*10).astype('float32')
+        return np.array([area,center[0],center[1],skew*10]).astype('float32')
 
 
     
