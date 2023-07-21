@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from util import areaOfGate
+from util import areaOfGate, rgb2bayer
 
 class Dataset:
     def __init__(self, image_dir, csv_file, input_shape, output_shape):
@@ -28,7 +28,9 @@ class Dataset:
         image_file = tf.io.read_file(filename)
         image = tf.io.decode_png(image_file, channels = 3)
         image = tf.image.resize(image, self.input_shape[:2])
-        image = tf.cast(image, tf.float32)*(1/255)
+        image = tf.image.rgb_to_grayscale(image)
+        image = tf.cast(image, tf.float32)
+
         return image   
 
     
@@ -121,7 +123,7 @@ if __name__ == '__main__':
 
     # Plot the images in the batch to check
     for i in range(len(images)):
-        image = cv2.cvtColor((images[i].numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor((images[i].numpy().astype('float')).astype('uint8'), cv2.COLOR_GRAY2RGB)
         for j in range(0, len(labels[i]), 2):
             cv2.circle(image, (int(labels[i][j]), int(labels[i][j+1])), 10, (0, 255, 0), -1)
         cv2.imshow("Image", image)

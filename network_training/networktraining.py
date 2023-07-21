@@ -12,6 +12,7 @@ sys.path.append("visionnet/network/visionnet/network_creation/")
 
 from visionnet import createModel, createModelDronet, createModelGateNet
 from gendataset import Dataset
+from dataAugment import AugmentedDataset
 from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
 
@@ -42,9 +43,11 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
 
         #initialize the dataset
         dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
+        augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
 
         #Generate the datasets
         train, val = dataset.createDataset(batch_size=batch_size)
+        train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
 
         #Combine the datasets
         if datasetTrain == None:
@@ -52,7 +55,9 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
             datasetVal = val
         else:
             datasetTrain = datasetTrain.concatenate(train)
+            datasetTrain = datasetTrain.concatenate(train_aug)
             datasetVal = datasetVal.concatenate(val)
+            datasetVal = datasetVal.concatenate(val_aug)
 
     print('Datasets Ready')
 
