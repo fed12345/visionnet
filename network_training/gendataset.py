@@ -89,7 +89,7 @@ class Dataset:
         label_ds = filenames_ds.map(lambda x: tf.py_function(self._loadLabel, [x], tf.float32))
 
         #Create validation and training sets
-        train_size = int(0.8 * len(image_files))
+        train_size = int(0.95 * len(image_files))
         train_dataset = tf.data.Dataset.zip((image_ds.take(train_size), label_ds.take(train_size)))
         val_dataset = tf.data.Dataset.zip((image_ds.skip(train_size), label_ds.skip(train_size)))
 

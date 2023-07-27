@@ -70,6 +70,7 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
         history = model.fit(datasetTrain, epochs=epochs, validation_data=datasetVal, verbose = 1)
 
     if save_model:
+        model.save('evalutation/models/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'.keras')
         # Convert the TensorFlow model to a TensorFlow Lite model
         converter = tf.lite.TFLiteConverter.from_keras_model(model)
         tflite_model = converter.convert()
@@ -84,14 +85,14 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend(['Train', 'Validation'], loc='upper right')
-    plt.savefig('evalutation/Loss.png', format='png')
+    plt.savefig('evalutation/Loss'+ model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+ '.png', format='png')
     baseline_accuracy = history.history['val_loss'][-1]
 
 
     with strategy.scope():
         if pruning:
             #Prune the model
-            pruning_params = {'pruning_schedule': tfmot.sparsity.keras.ConstantSparsity(0.5, begin_step=0, frequency=100)}
+            pruning_params = {'pruning_schedule': tfmot.sparsity.keras.ConstantSparsity(0.4, begin_step=0, frequency=100)}
             model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
             model.summary()
             #Train the model
