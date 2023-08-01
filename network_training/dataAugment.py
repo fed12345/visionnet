@@ -51,6 +51,21 @@ class AugmentedDataset(Dataset):
         img = tf.nn.depthwise_conv2d(img[None], blur, [1,1,1,1], 'SAME')
         return img[0]
     
+    def applyRotation(self, image, label):
+        """a function to apply random rotation to the image and label
+
+        Args:
+            image (numpy array): image
+            label (numpy array): label
+
+        Returns:
+            numpy array: image
+            numpy array: label
+        """        
+        angle = random.randint(-15, 15)
+        image = tf.keras.preprocessing.image.apply_affine_transform(image, theta=angle)
+        label = self.rotateLabel(label, angle)
+        return image, label
 if __name__=='__main__':
     image_dir = 'dataset/CNN/Austin1'
     csv_file = 'dataset/CNN/Austin1/corners.csv'

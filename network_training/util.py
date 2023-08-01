@@ -115,6 +115,8 @@ def rgb2bayer(rgb_image):
 
     return bayer_image
 
+def coord_out_of_bounds(width, height, x, y):
+    return x < 0 or x >= width or y < 0 or y >= height
 
 if __name__ == "__main__":
     #perform unit tests

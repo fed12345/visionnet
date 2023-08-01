@@ -25,7 +25,7 @@ def createModel(input_shape=(600, 360, 3)):
     
     return model
 
-def createModelDronet(input_shape=(180, 120, 3), output_shape=(8,)): 
+def createModelDronet(input_shape=(180, 120, 3), output_shape=8): 
     """ Dronet """
     input_tensor = tf.keras.layers.Input(shape=input_shape, name='input')
     conv_1 = tf.keras.layers.Conv2D(filters=32, kernel_size=5, strides=2, padding='same', activation='linear')(input_tensor)
@@ -91,7 +91,7 @@ def createModelDronet(input_shape=(180, 120, 3), output_shape=(8,)):
     dense1 = tf.keras.layers.Dense(units=32, activation='relu')(dense0)
 
     dense2 = tf.keras.layers.Dense(np.prod(output_shape), activation='linear')(dense1)
-    output = tf.keras.layers.Reshape(output_shape)(dense2)
+    output = tf.keras.layers.Reshape((output_shape,))(dense2)
 
     model = tf.keras.models.Model([input_tensor], output, name='model')
 
@@ -100,7 +100,7 @@ def createModelDronet(input_shape=(180, 120, 3), output_shape=(8,)):
                 metrics=['mae', 'mse']) #look into new metrics
     return model
 
-def createModelGateNet(input_shape = (180,120,3),l2_weight_decay=0.0002):
+def createModelGateNet(input_shape = (180,120,3),output_shape=8,l2_weight_decay=0.0002):
     input_tensor = tf.keras.layers.Input(shape=input_shape, name='input')
 
     conv_1 = tf.keras.layers.Conv2D(16, kernel_size=(3,3),
@@ -217,8 +217,8 @@ def createModelGateNet(input_shape = (180,120,3),l2_weight_decay=0.0002):
     #dense_7 = tf.keras.layers.Dense(1024, activation='relu')(flatten_6)
     #drop_7 = tf.keras.layers.Dropout(0.25)(dense_7)
 
-    dense_8 = tf.keras.layers.Dense(8, activation='linear')(flatten_6)
-    output = tf.keras.layers.Reshape((8,))(dense_8)
+    dense_8 = tf.keras.layers.Dense(output_shape, activation='linear')(flatten_6)
+    output = tf.keras.layers.Reshape((output_shape,))(dense_8)
 
     model = tf.keras.models.Model([input_tensor], output, name='model')
     # Compile the model with loss function, optimizer, and metrics

@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from util import areaOfGate, rgb2bayer
+from util import areaOfGate, rgb2bayer, coord_out_of_bounds
 
 class Dataset:
     def __init__(self, image_dir, csv_file, input_shape, output_shape):
@@ -54,16 +54,20 @@ class Dataset:
                 biggest_area = area
                 biggest_row = row
             
-        corners = np.array([(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]).flatten()
+        corners = [(biggest_row['corner1_x'], biggest_row['corner1_y']), (biggest_row['corner2_x'], biggest_row['corner2_y']), (biggest_row['corner3_x'], biggest_row['corner3_y']), (biggest_row['corner4_x'], biggest_row['corner4_y'])]
        
         #Determine size of dataset image
         image_shape = (cv2.imread(filename.numpy().decode('utf-8'))).shape
+        all_corners_out_of_bounds = all(coord_out_of_bounds(image_shape[1], image_shape[0], x, y) for x, y in corners)
+        confidence = 100
+        if all_corners_out_of_bounds:
+            confidence = 0
         # Normalize the corners to input shape 
-        corners = corners*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
+        corners = np.array(corners).flatten()*np.array([self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], 
                                     self.input_shape[0]/image_shape[0], self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0], 
                                     self.input_shape[1]/image_shape[1], self.input_shape[0]/image_shape[0]])
 
-        return corners.astype('float32')
+        return np.append(corners, confidence).astype('float32')
 
 
 
@@ -124,7 +128,7 @@ if __name__ == '__main__':
     # Plot the images in the batch to check
     for i in range(len(images)):
         image = cv2.cvtColor((images[i].numpy().astype('float')).astype('uint8'), cv2.COLOR_GRAY2RGB)
-        for j in range(0, len(labels[i]), 2):
+        for j in range(0, len(labels[i])-1, 2):
             cv2.circle(image, (int(labels[i][j]), int(labels[i][j+1])), 10, (0, 255, 0), -1)
         cv2.imshow("Image", image)
         cv2.waitKey(0)
