@@ -17,7 +17,7 @@ from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
 
 
-def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning):
+def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning):
     if model_name == 'activevision':
         createModel = createModelActiveVision
     elif model_name == 'visionnet':
@@ -33,7 +33,8 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
         print('Invalid model name')
         exit()
 
-    image_dirs =[files for files in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, files))]
+    image_dirs = datasets
+    augmented_image_dir =[files for files in os.listdir(dataset_dir_augmented) if os.path.isdir(os.path.join(dataset_dir_augmented, files))]
     datasetTrain = None
     datasetVal = None
     for image_dir in image_dirs:
@@ -44,6 +45,29 @@ def trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, b
         #initialize the dataset
         dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
         augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
+
+        #Generate the datasets
+        train, val = dataset.createDataset(batch_size=batch_size)
+        train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
+
+        #Combine the datasets
+        if datasetTrain == None:
+            datasetTrain = train
+            datasetVal = val
+        else:
+            datasetTrain = datasetTrain.concatenate(train)
+            datasetTrain = datasetTrain.concatenate(train_aug)
+            datasetVal = datasetVal.concatenate(val)
+            datasetVal = datasetVal.concatenate(val_aug)
+
+    for image_dir in augmented_image_dir:
+
+        #Define csv file
+        csv_file = os.path.join(dataset_dir_augmented,image_dir,csv_name)
+
+        #initialize the dataset
+        dataset = Dataset(os.path.join(dataset_dir_augmented,image_dir), csv_file, input_shape, output_shape)
+        augmenteddata = AugmentedDataset(os.path.join(dataset_dir_augmented,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
 
         #Generate the datasets
         train, val = dataset.createDataset(batch_size=batch_size)

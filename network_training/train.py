@@ -42,12 +42,14 @@ batch_size = parameters['batch_size']
 epochs = parameters['epochs']
 epochs_optimization = parameters['epochs_optimization']
 dataset_dir = parameters['dataset_dir']
+dataset_dir_augmented =  parameters['dataset_dir_augmented']
+datasets = parameters['datasets']
 csv_name = parameters['csv_name']
 aware_quantization = parameters['aware_quantization']
 pruning = parameters['pruning']
 save_model = parameters['save_model']
 
-input_shapes = [(input_shape), (80,120,1), (60,90,1), (40,60,1)][::-1]
+input_shapes = [(input_shape), (80,120,1), (60,90,1)]
 #==========================CODE=========================================================================================
 #plot accuracies
 
@@ -79,7 +81,7 @@ def visualizePredictionActiveVision(image, prediction, actual):
 
 accuracies = []
 for input_shape in input_shapes:
-    predictions, imagesVal, labelsVal, accuracy = trainNetwork(model_name, dataset_dir, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
+    predictions, imagesVal, labelsVal, accuracy = trainNetwork(model_name, dataset_dir,  dataset_dir_augmented, datasets, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
     accuracies.append(accuracy)
 
 #plot accuracies
