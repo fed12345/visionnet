@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
+from loss import loss
 
 
 def createModel(input_shape=(600, 360, 3)):
@@ -96,7 +97,7 @@ def createModelDronet(input_shape=(180, 120, 3), output_shape=8):
     model = tf.keras.models.Model([input_tensor], output, name='model')
 
     model.compile(optimizer='adam',
-                loss='mse', #look into chamfer distance
+                loss=loss, #look into chamfer distance
                 metrics=['mae', 'mse']) #look into new metrics
     return model
 
@@ -223,7 +224,7 @@ def createModelGateNet(input_shape = (180,120,3),output_shape=8,l2_weight_decay=
     model = tf.keras.models.Model([input_tensor], output, name='model')
     # Compile the model with loss function, optimizer, and metrics
     model.compile(optimizer='adam',
-                loss='mse', #look into chamfer distance
+                loss=loss, #look into chamfer distance
                 metrics=['mae', 'mse']) #look into new metrics
     
     return model

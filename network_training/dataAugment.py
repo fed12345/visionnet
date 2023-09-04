@@ -79,10 +79,10 @@ if __name__=='__main__':
     dataset = AugmentedDataset(image_dir, csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
 
     # Create the dataset
-    train_dataset, val_dataset = dataset.createDataset()
+    train_dataset, val_dataset = dataset.createDataset(batch_size=30)
 
     #Visualize the dataset
-    batch = next(iter(val_dataset))
+    batch = next(iter(train_dataset))
     images, labels = batch
 
     # Plot the images in the batch to check
