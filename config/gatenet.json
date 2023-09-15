@@ -1,21 +1,40 @@
 {
     "model" : "gatenet",  
-    "device": "/device:GPU:2",
+    "device": "/device:GPU:3",
     "input_shape": [
         120,
         180,
-        3
+        1
     ],
-    "output_shape": [
-        8
-    ],
-    "batch_size": 10,
-    "epochs": 100,
-    "epochs_optimization": 10,
+    "output_shape": 12,
+    "batch_size": 20,
+    "epochs": 1,
+    "epochs_optimization": 1,
     "dataset_dir": "dataset/CNN/",
+    "dataset_dir_augmented": "dataset/CNNAugmented/",
+    "datasets" : [
+        "Austin2",
+        "BaltimoreMobile",
+        "BaltimoreOB",
+        "Boston_Images",
+        "LittletonBlue",
+        "LittletonHQ",
+        "MAVLab",
+        "Orlando",
+        "OrlandoOB",
+        "Mavlab_himax1",
+        "Mavlab_himax2",
+        "Sim_Images_Washington",
+        "Test2_Images",
+        "Warsaw1", 
+        "WashingtonOB",
+        "WashingtonOBNewLight",
+        "WashingtonOBNewLight2",
+        "WashingtonOBRace"
+    ],
     "csv_name": "corners.csv",
-    "aware_quantization": true,
-    "pruning": true,
+    "aware_quantization": false,
+    "pruning": false,
     "save_model": true
 
 }   

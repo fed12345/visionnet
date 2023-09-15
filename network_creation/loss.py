@@ -3,24 +3,23 @@ import numpy as np
 import tensorflow as tf
 
 def loss(y_true, y_pred):
-    
+    y_pred = tf.convert_to_tensor(y_pred)
+    y_true = tf.cast(y_true, y_pred.dtype)
+
     coord_true = y_true[:, :8]
     coord_pred = y_pred[:, :8]
     confidence_true = y_true[:, 8:]
     confidence_pred = y_pred[:, 8:]
 
-    mse_confidence = tf.reduce_mean(tf.square(confidence_true - confidence_pred))
+    mse_confidence = tf.math.squared_difference(confidence_pred, confidence_true)
+    confidence = 0.01 * tf.repeat(confidence_true, repeats=2, axis=1)
+    weighted_coord_pred = tf.multiply(coord_pred, confidence)
 
-    confidence = 0.001 * tf.repeat(confidence_true, repeats=2, axis=1)
+    mse_coord = tf.math.squared_difference(weighted_coord_pred,coord_true)
 
-    weighted_coord_true = tf.multiply(coord_true, confidence)
-
-    mse_coord = tf.reduce_mean(tf.square(weighted_coord_true - coord_pred))
-
-    total_loss = mse_confidence + mse_coord
+    total_loss = tf.math.reduce_mean(tf.concat([mse_confidence,mse_coord],1))
 
     return total_loss
-
 
 
 if __name__ == '__main__':
@@ -32,9 +31,9 @@ if __name__ == '__main__':
     ])
 
     # Compile the model using the custom MSE loss function
-    model.compile(optimizer='adam', loss=loss)
+    model.compile(optimizer='adam', loss=loss, metrics=['mse'])
 
     x_train = np.random.rand(1000, 10)  
-    y_train = np.random.rand(1000, 12)   
+    y_train = np.random.rand(1000, 12) 
     # Train the model
     model.fit(x_train, y_train, epochs=10)

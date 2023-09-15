@@ -26,11 +26,11 @@ class AugmentedDataset(Dataset):
         image = tf.io.decode_png(image_file, channels = 3)
         image = tf.image.resize(image, self.input_shape[:2])
         if 'HSV' in self.augment_methods:
-            image = tf.image.random_hue(image, 0.5)
-            image = tf.image.random_saturation(image, 5, 10)
-            image = tf.image.random_brightness(image, 5)
+            image = tf.image.random_hue(image, 0.2)
+            image = tf.image.random_saturation(image, 5, 8)
+            image = tf.image.random_brightness(image, 0.5)
         if 'BlurGaussian' in self.augment_methods:
-            if random.random() > 0.5:
+            if random.random() > 0.0:
                 image = self.apply_blur(image)
         
         image = tf.image.rgb_to_grayscale(image)

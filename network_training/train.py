@@ -49,13 +49,13 @@ aware_quantization = parameters['aware_quantization']
 pruning = parameters['pruning']
 save_model = parameters['save_model']
 
-input_shapes = [(input_shape), (80,120,1), (60,90,1)]
+input_shapes = [(input_shape)]
 #==========================CODE=========================================================================================
 #plot accuracies
 
 
 def visualizePrediction(image, prediction, actual):
-    image = cv2.cvtColor((image.numpy().astype('float')*255).astype('uint8'), cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor((image.numpy().astype('float')*255).astype('uint8'), cv2.COLOR_GRAY2RGB)
     for i in range(0, len(prediction), 2):
         cv2.circle(image, (int(prediction[i]*input_shape[1]), int(prediction[i+1]*input_shape[0])), 10, (0, 0, 255), -1)
         cv2.circle(image, (int(actual[i]*input_shape[1]), int(actual[i+1]*input_shape[0])), 10, (0, 255, 0), -1)

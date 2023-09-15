@@ -4,15 +4,14 @@
     "input_shape": [
         120,
         180,
-        3
+        1
     ],
-    "output_shape": [
-        8
-    ],
+    "output_shape": 12,
     "batch_size": 10,
     "epochs": 100,
     "epochs_optimization": 10,
     "dataset_dir": "dataset/CNN/",
+    "dataset_dir_augmented": "dataset/CNNAugmented/",
     "csv_name": "corners.csv",
     "aware_quantization": false,
     "pruning": true,
