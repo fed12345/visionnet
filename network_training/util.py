@@ -118,6 +118,42 @@ def rgb2bayer(rgb_image):
 def coord_out_of_bounds(width, height, x, y):
     return x < 0 or x >= width or y < 0 or y >= height
 
+
+def distance(point1, point2):
+    """Calculate the Euclidean distance between two points."""
+    return ((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)**0.5
+
+def midpoint(point1, point2):
+    """Calculate the midpoint between two points."""
+    return ((point1[0] + point2[0]) / 2, (point1[1] + point2[1]) / 2)
+
+def centerOfGate3Coord(p1, p2, p3):
+    """Calculate the center of a square given three of its corner coordinates."""
+    
+    # Determine which two points are adjacent by checking their distances.
+    distances = [(distance(p1, p2), p1, p2), (distance(p1, p3), p1, p3), (distance(p2, p3), p2, p3)]
+    distances.sort()  # Sort by distance
+    shortest_distance, adjacent1, adjacent2 = distances[0]
+    third_point = [p for p in [p1, p2, p3] if p != adjacent1 and p != adjacent2][0]
+    
+    # Find the midpoint of the side formed by the adjacent points
+    mid = midpoint(adjacent1, adjacent2)
+    
+    # Determine the diagonal vector using the third point
+    diagonal_vector = (third_point[0] - mid[0], third_point[1] - mid[1])
+    
+    # Add the diagonal vector to the midpoint to get the center
+    center = (mid[0] + diagonal_vector[0]/2, mid[1] + diagonal_vector[1]/2)
+    
+    return center
+
+
+if __name__ == "__main__":
+    #perform unit tests
+    p1 = (1, 1)
+    p2 = (3, 1)
+    p3 = (3, 3)
+    print(centerOfGate3Coord(p1,p2,p3))
 if __name__ == "__main__":
     #perform unit tests
     
