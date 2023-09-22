@@ -13,6 +13,7 @@ sys.path.append("visionnet/network/visionnet/network_creation/")
 from visionnet import createModel, createModelDronet, createModelGateNet
 from gendataset import Dataset
 from dataAugment import AugmentedDataset
+from genSimData import SimDataset
 from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
 
@@ -34,54 +35,47 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
         exit()
 
     image_dirs = datasets
-    augmented_image_dir =[files for files in os.listdir(dataset_dir_augmented) if os.path.isdir(os.path.join(dataset_dir_augmented, files))]
     datasetTrain = None
     datasetVal = None
     for image_dir in image_dirs:
+        if image_dir != 'Sim_images':
+            #Define csv file
+            csv_file = os.path.join(dataset_dir,image_dir,csv_name)
 
-        #Define csv file
-        csv_file = os.path.join(dataset_dir,image_dir,csv_name)
+            #initialize the dataset
+            dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
+            augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
 
-        #initialize the dataset
-        dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
-        augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
+            #Generate the datasets
+            train, val = dataset.createDataset(batch_size=batch_size)
+            train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
 
-        #Generate the datasets
-        train, val = dataset.createDataset(batch_size=batch_size)
-        train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
-
-        #Combine the datasets
-        if datasetTrain == None:
-            datasetTrain = train
-            datasetVal = val
+            #Combine the datasets
+            if datasetTrain == None:
+                datasetTrain = train
+                datasetVal = val
+            else:
+                datasetTrain = datasetTrain.concatenate(train)
+                datasetTrain = datasetTrain.concatenate(train_aug)
+                datasetVal = datasetVal.concatenate(val)
+                datasetVal = datasetVal.concatenate(val_aug)
         else:
-            datasetTrain = datasetTrain.concatenate(train)
-            datasetTrain = datasetTrain.concatenate(train_aug)
-            datasetVal = datasetVal.concatenate(val)
-            datasetVal = datasetVal.concatenate(val_aug)
+            #Define csv file
+            csv_file = os.path.join(dataset_dir,image_dir,csv_name)
 
-    for image_dir in augmented_image_dir:
+            dataset = SimDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
 
-        #Define csv file
-        csv_file = os.path.join(dataset_dir_augmented,image_dir,csv_name)
+            #Generate the datasets
+            train, val = dataset.createDataset(batch_size=batch_size)
 
-        #initialize the dataset
-        dataset = Dataset(os.path.join(dataset_dir_augmented,image_dir), csv_file, input_shape, output_shape)
-        augmenteddata = AugmentedDataset(os.path.join(dataset_dir_augmented,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
-
-        #Generate the datasets
-        train, val = dataset.createDataset(batch_size=batch_size)
-        train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
-
-        #Combine the datasets
-        if datasetTrain == None:
-            datasetTrain = train
-            datasetVal = val
-        else:
-            datasetTrain = datasetTrain.concatenate(train)
-            datasetTrain = datasetTrain.concatenate(train_aug)
-            datasetVal = datasetVal.concatenate(val)
-            datasetVal = datasetVal.concatenate(val_aug)
+            #Combine the datasets
+            if datasetTrain == None:
+                datasetTrain = train
+                datasetVal = val
+            else:
+                datasetTrain = datasetTrain.concatenate(train)
+                datasetVal = datasetVal.concatenate(val)
+    
 
     print('Datasets Ready')
 
