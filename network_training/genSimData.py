@@ -12,13 +12,14 @@ class SimDataset(Dataset):
 
     def _loadLabel(self,filename):
         row =  self.labels_df[self.labels_df['filename'] == os.path.basename(filename.numpy().decode('utf-8'))]
+        assert len(row) > 0, filename.numpy().decode('utf-8')
 
         image_shape = (cv2.imread(filename.numpy().decode('utf-8'))).shape
-        center_x = row['center_x'] * self.input_shape[1]/image_shape[1]
-        center_y = row['center_y'] * self.input_shape[0]/image_shape[0]
+        center_x = row['center_x'].values[0] * self.input_shape[1]/image_shape[1]
+        center_y = row['center_y'].values[0] * self.input_shape[0]/image_shape[0]
 
-        size_x = row['size_x'] * self.input_shape[1]/image_shape[1]
-        size_y = row['size_y'] * self.input_shape[0]/image_shape[0]
+        size_x = row['size_x'].values[0] * self.input_shape[1]/image_shape[1]
+        size_y = row['size_y'].values[0] * self.input_shape[0]/image_shape[0]
 
         return np.array([1, size_x, size_y, center_x, center_y]).astype('float32')
     

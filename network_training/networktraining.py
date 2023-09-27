@@ -3,6 +3,7 @@ import cv2
 import csv
 import os
 import tensorflow as tf
+from tensorflow.keras.callbacks import TensorBoard
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow_model_optimization as tfmot
@@ -33,7 +34,8 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
     else:
         print('Invalid model name')
         exit()
-
+    log_dir = 'evalutation/models/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])
+    tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
     image_dirs = datasets
     datasetTrain = None
     datasetVal = None
@@ -45,10 +47,16 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
             #initialize the dataset
             dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
             augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
+            augmenteddata1 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, [])
+            augmenteddata2 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, [])
+            augmenteddata3 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
 
             #Generate the datasets
             train, val = dataset.createDataset(batch_size=batch_size)
             train_aug, val_aug = augmenteddata.createDataset(batch_size=batch_size)
+            train_aug1, _ = augmenteddata1.createDataset(batch_size=batch_size)
+            train_aug2, _ = augmenteddata2.createDataset(batch_size=batch_size)
+            train_aug3, _ = augmenteddata3.createDataset(batch_size=batch_size)
 
             #Combine the datasets
             if datasetTrain == None:
@@ -57,6 +65,9 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
             else:
                 datasetTrain = datasetTrain.concatenate(train)
                 datasetTrain = datasetTrain.concatenate(train_aug)
+                datasetTrain = datasetTrain.concatenate(train_aug1)
+                datasetTrain = datasetTrain.concatenate(train_aug2)
+                datasetTrain = datasetTrain.concatenate(train_aug3)
                 datasetVal = datasetVal.concatenate(val)
                 datasetVal = datasetVal.concatenate(val_aug)
         else:
@@ -85,7 +96,7 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
         model = createModel(input_shape=input_shape, output_shape=output_shape)
         model.summary()
         # Train the model
-        history = model.fit(datasetTrain, epochs=epochs, validation_data=datasetVal, verbose = 1)
+        history = model.fit(datasetTrain, epochs=epochs, validation_data=datasetVal, verbose = 1, callbacks = [tensorboard_callback] )
 
     if save_model:
         model.save('evalutation/models/'+model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'.keras')
