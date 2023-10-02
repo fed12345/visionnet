@@ -49,16 +49,15 @@ aware_quantization = parameters['aware_quantization']
 pruning = parameters['pruning']
 save_model = parameters['save_model']
 
-input_shapes = [(input_shape)]
+input_shapes = [(350,400,3),(280,320,3),(210,240,3),(input_shape),(112,128,3), (70,80,3)]
 #==========================CODE=========================================================================================
 #plot accuracies
 
 
 def visualizePrediction(image, prediction, actual):
-    image = cv2.cvtColor((image.numpy().astype('float')).astype('uint8'), cv2.COLOR_GRAY2RGB)
-    for i in range(0, len(prediction), 2):
-        cv2.circle(image, (int(prediction[i]*input_shape[1]), int(prediction[i+1]*input_shape[0])), 10, (0, 0, 255), -1)
-        cv2.circle(image, (int(actual[i]*input_shape[1]), int(actual[i+1]*input_shape[0])), 10, (0, 255, 0), -1)
+    image = cv2.cvtColor((image.numpy().astype('float')).astype('uint8'), cv2.COLOR_BGR2RGB)
+    cv2.circle(image, (int(prediction[3]), int(prediction[4])), 10, (0, 0, 255), -1)
+
     return image
 
 def visualizePredictionActiveVision(image, prediction, actual):
@@ -78,6 +77,9 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     return image
 
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES", "Not set"))
+print("Available GPUs:", tf.config.list_physical_devices("GPU"))
 
 accuracies = []
 for input_shape in input_shapes:
@@ -91,7 +93,7 @@ plt.ylabel('mse')
 plt.savefig('evalutation/accuracies.png')
 
 for i in range(len(labelsVal)):
-     cv2.imwrite('evalutation/cnn/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
+     cv2.imwrite('evalutation/cnn1/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
 
 print('done')
 

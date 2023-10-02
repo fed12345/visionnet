@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
-from loss import loss
+from loss import loss, normalizedLoss
 
 
 def createModel(input_shape=(600, 360, 3)):
@@ -98,7 +98,7 @@ def createModelDronet(input_shape=(180, 120, 3), output_shape=8):
 
     model.compile(optimizer='adam',
                 loss=loss, #look into chamfer distance
-                metrics=['mae', 'mse']) #look into new metrics
+                metrics=[normalizedLoss(input_shape[0],input_shape[1])]) #look into new metrics
     return model
 
 def createModelGateNet(input_shape = (180,120,3),output_shape=8,l2_weight_decay=0.0002):
@@ -225,13 +225,16 @@ def createModelGateNet(input_shape = (180,120,3),output_shape=8,l2_weight_decay=
     # Compile the model with loss function, optimizer, and metrics
     model.compile(optimizer='adam',
                 loss=loss, #look into chamfer distance
-                metrics=['mae', 'mse']) #look into new metrics
+                metrics=[normalizedLoss(input_shape[0],input_shape[1])]) #look into new metrics
     
     return model
 if __name__ == '__main__':
-    model = createModelGateNet(input_shape=(360, 360, 3))
+    model = createModelDronet(input_shape=(360, 360, 3))
     model.summary()
-    #Convert to tflite
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    tflite_model = converter.convert()
-    open("/Users/Federico/Desktop/Thesis/code/onnxmanipulation/models/pencilNet_x360.tflite", "wb").write(tflite_model)
+
+    x_train = np.random.rand(100, 360,360,3)
+    y_train = np.random.rand(100, 5)       
+
+    history =  model.fit(x_train, y_train, epochs=1, batch_size=32)
+
+    print(model)

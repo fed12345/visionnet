@@ -32,7 +32,6 @@ class AugmentedDataset(Dataset):
         if 'BlurGaussian' in self.augment_methods:
             if random.random() > 0.5:
                 image = self.apply_blur(image)
-        
         image = tf.cast(image, tf.float32)
         return image
     
@@ -61,7 +60,7 @@ class AugmentedDataset(Dataset):
             numpy array: image
             numpy array: label
         """        
-        angle = random.randint(-15, 15)
+        angle = random.randint(-20, 20)
         image = tf.keras.preprocessing.image.apply_affine_transform(image, theta=angle)
         label = self.rotateLabel(label, angle)
         return image, label
@@ -75,8 +74,6 @@ class AugmentedDataset(Dataset):
     def _translate_and_crop(self, image, label):
         # Convert tf.Tensor to numpy array
         image_np = image.numpy()
-        tf.print(image_np.shape)
-        tf.print(label)
         # Define the translation matrix
         tx, ty = np.random.randint(-10, 20, 2)
 
@@ -119,6 +116,7 @@ class AugmentedDataset(Dataset):
         train_dataset = tf.data.Dataset.zip((image_ds.take(train_size), label_ds.take(train_size)))
         val_dataset = tf.data.Dataset.zip((image_ds.skip(train_size), label_ds.skip(train_size)))
         train_dataset = train_dataset.map(self.translationImage)
+        train_dataset.shuffle(batch_size, reshuffle_each_iteration=True)
         # Batch the dataset
         train_dataset = train_dataset.batch(batch_size)
         val_dataset = val_dataset.batch(batch_size)

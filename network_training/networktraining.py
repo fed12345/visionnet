@@ -113,9 +113,10 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
     plt.title('Model Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.yscale('log')
     plt.legend(['Train', 'Validation'], loc='upper right')
     plt.savefig('evalutation/Loss'+ model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+ '.png', format='png')
-    baseline_accuracy = history.history['val_loss'][-1]
+    baseline_accuracy = history.history['val_lossNorm'][-1]
 
 
     with strategy.scope():
