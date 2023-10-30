@@ -49,7 +49,7 @@ aware_quantization = parameters['aware_quantization']
 pruning = parameters['pruning']
 save_model = parameters['save_model']
 
-input_shapes = [(350,400,3),(280,320,3),(210,240,3),(input_shape),(112,128,3), (70,80,3)]
+input_shapes = [(350,400,1),(280,320,1),(210,240,1),(input_shape),(112,128,1), (70,80,1)]
 #==========================CODE=========================================================================================
 #plot accuracies
 

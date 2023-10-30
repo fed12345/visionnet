@@ -62,6 +62,32 @@ def normalizedLoss(height,width):
         return total_loss
     return lossNorm
 
+def errorSizeX(y_true,y_pred):
+    size_true = y_true[:, 3:5]
+    size_pred = y_pred[:, 3:5]
+
+    size_diffX = size_true[0] - size_pred[0]
+
+    return size_diffX
+
+def errorSizeY(y_true,y_pred):
+    size_true = y_true[:, 3:5]
+    size_pred = y_pred[:, 3:5]
+
+    size_diffY = size_true[1] - size_pred[1]
+
+    return size_diffY
+
+def errorCenter(y_true,y_pred):
+    center_coord_true = y_true[:, 1:3]
+    center_coord_pred = y_pred[:, 1:3]
+    
+    center_error = abs(center_coord_pred[0]-center_coord_true[0])+abs(center_coord_pred[1]-center_coord_true[1])
+
+    return center_error
+
+
+
 if __name__ == '__main__':
 
     # Create a simple model

@@ -23,7 +23,7 @@ class AugmentedDataset(Dataset):
             numpy array: image
         """     
         image_file = tf.io.read_file(filename)
-        image = tf.io.decode_png(image_file, channels = 3)
+        image = tf.io.decode_png(image_file, channels = 1)
         image = tf.image.resize(image, self.input_shape[:2])
         if 'HSV' in self.augment_methods:
             image = tf.image.random_hue(image, 0.1)
@@ -46,7 +46,7 @@ class AugmentedDataset(Dataset):
 
     def apply_blur(self, img):
         blur = self._gaussian_kernel(3, 2, 3, img.dtype)
-        img = tf.nn.depthwise_conv2d(img[None], blur, [1,1,1,1], 'SAME')
+        img = tf.nn.conv2d(img[None], blur, [1,1,1,1], 'SAME')
         return img[0]
     
     def applyRotation(self, image, label):
@@ -83,6 +83,7 @@ class AugmentedDataset(Dataset):
         translated_image = cv2.warpAffine(image_np, trans_matrix, (image_np.shape[1], image_np.shape[0]), borderMode=cv2.BORDER_REPLICATE)
 
         resized_image = cv2.resize(translated_image, (self.input_shape[1], self.input_shape[0]))
+        resized_image = np.expand_dims(resized_image, axis=-1)
         label = label.numpy()
         #fix label
         label[3] = label[3] + tx
@@ -133,7 +134,7 @@ if __name__=='__main__':
 
 
     # Iniltiaize Class
-    dataset = AugmentedDataset(image_dir, csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
+    dataset = AugmentedDataset(image_dir, csv_file, input_shape, output_shape, ['HSV'])
 
     # Create the dataset
     train_dataset, val_dataset = dataset.createDataset(batch_size=30)
