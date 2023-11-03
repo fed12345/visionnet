@@ -12,11 +12,6 @@ sys.path.append("network_creation")
 sys.path.append("visionnet/network/visionnet/network_creation/")
 
 from networktraining import trainNetwork
-from visionnet import createModel, createModelDronet, createModelGateNet
-from gendataset import Dataset
-from activeVisionNet import createModelActiveVision
-from genDatasetActiveVision import DatasetActive
-
 #==========================PARAMETERS===================================================================================
 # Create an argument parser
 parser = argparse.ArgumentParser(description='Process configuration file.')
@@ -49,9 +44,8 @@ aware_quantization = parameters['aware_quantization']
 pruning = parameters['pruning']
 save_model = parameters['save_model']
 
-input_shapes = [(350,400,1),(280,320,1),(210,240,1),(input_shape),(112,128,1), (70,80,1)]
+input_shapes = [(input_shape)]
 #==========================CODE=========================================================================================
-#plot accuracies
 
 
 def visualizePrediction(image, prediction, actual):
@@ -77,23 +71,13 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     return image
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
-print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES", "Not set"))
-print("Available GPUs:", tf.config.list_physical_devices("GPU"))
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 accuracies = []
 for input_shape in input_shapes:
-    predictions, imagesVal, labelsVal, accuracy = trainNetwork(model_name, dataset_dir,  dataset_dir_augmented, datasets, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
-    accuracies.append(accuracy)
-
-#plot accuracies
-plt.plot(input_shapes, accuracies)
-plt.xlabel('input shape')
-plt.ylabel('mse')
-plt.savefig('evalutation/accuracies.png')
+    predictions, imagesVal, labelsVal, _ = trainNetwork(model_name, dataset_dir,  dataset_dir_augmented, datasets, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
 
 for i in range(len(labelsVal)):
-     cv2.imwrite('evalutation/cnn1/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
+     cv2.imwrite('evalutation/cnn/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))
 
 print('done')
 
