@@ -23,7 +23,7 @@ class AugmentedDataset(Dataset):
             numpy array: image
         """     
         image_file = tf.io.read_file(filename)
-        image = tf.io.decode_png(image_file, channels = 1)
+        image = tf.io.decode_png(image_file, channels = 3)
         image = tf.image.resize(image, self.input_shape[:2])
         if 'HSV' in self.augment_methods:
             image = tf.image.random_hue(image, 0.1)
@@ -32,6 +32,7 @@ class AugmentedDataset(Dataset):
         if 'BlurGaussian' in self.augment_methods:
             if random.random() > 0.5:
                 image = self.apply_blur(image)
+        image = tf.image.rgb_to_grayscale(image)
         image = tf.cast(image, tf.float32)
         return image
     
