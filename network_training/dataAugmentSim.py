@@ -1,12 +1,12 @@
-import random
 import cv2
 import numpy as np
-from gendataset import Dataset
+from genSimData import SimDataset
 from util import rgb2bayer, areaOfGate
 import tensorflow as tf
 import os
+import random
 # dataloader class
-class AugmentedDataset(Dataset):
+class AugmentedDatasetSim(SimDataset):
  
     # constructor
     def __init__(self, image_dir, csv_file, input_shape, output_shape, augment_methods):
@@ -49,47 +49,7 @@ class AugmentedDataset(Dataset):
         blur = self._gaussian_kernel(3, 2, 3, img.dtype)
         img = tf.nn.conv2d(img[None], blur, [1,1,1,1], 'SAME')
         return img[0]
-    
-    def applyRotation(self, image, label):
-        """a function to apply random rotation to the image and label
-
-        Args:
-            image (numpy array): image
-            label (numpy array): label
-
-        Returns:
-            numpy array: image
-            numpy array: label
-        """        
-        angle = random.randint(-20, 20)
-        image = tf.keras.preprocessing.image.apply_affine_transform(image, theta=angle)
-        label = self.rotateLabel(label, angle)
-        return image, label
-    
-    def translationImage(self, image, label):
-        # Use tf.py_function to wrap OpenCV translation function
-        [translated_image, label] = tf.py_function(self._translate_and_crop, [image, label], [tf.float32, tf.float32])
-
-        return translated_image, label
-
-    def _translate_and_crop(self, image, label):
-        # Convert tf.Tensor to numpy array
-        image_np = image.numpy()
-        # Define the translation matrix
-        tx, ty = np.random.randint(-10, 20, 2)
-
-        trans_matrix = np.float32([[1, 0, tx], [0, 1, ty]])
-
-        # Translate the image
-        translated_image = cv2.warpAffine(image_np, trans_matrix, (image_np.shape[1], image_np.shape[0]), borderMode=cv2.BORDER_REPLICATE)
-
-        resized_image = cv2.resize(translated_image, (self.input_shape[1], self.input_shape[0]))
-        resized_image = np.expand_dims(resized_image, axis=-1)
-        label = label.numpy()
-        #fix label
-        label[3] = label[3] + tx
-        label[4] = label[4] + ty
-        return resized_image, label       
+        
 
 
     def createDataset(self, batch_size=32):
@@ -108,7 +68,7 @@ class AugmentedDataset(Dataset):
        
         # Create a TensorFlow dataset from the image filenames
         filenames_ds = tf.data.Dataset.from_tensor_slices(image_files)
-
+        
         # Map the load_image and load_label functions to the filenames to create the final dataset
         image_ds = filenames_ds.map(self._loadImage,num_parallel_calls=tf.data.AUTOTUNE)
         label_ds = filenames_ds.map(lambda x: tf.py_function(self._loadLabel, [x], tf.float32))
@@ -117,7 +77,6 @@ class AugmentedDataset(Dataset):
         train_size = int(0.95 * len(image_files))
         train_dataset = tf.data.Dataset.zip((image_ds.take(train_size), label_ds.take(train_size)))
         val_dataset = tf.data.Dataset.zip((image_ds.skip(train_size), label_ds.skip(train_size)))
-        train_dataset = train_dataset.map(self.translationImage)
         train_dataset.shuffle(batch_size, reshuffle_each_iteration=True)
         # Batch the dataset
         train_dataset = train_dataset.batch(batch_size)
@@ -126,6 +85,7 @@ class AugmentedDataset(Dataset):
         return train_dataset, val_dataset
 
 if __name__=='__main__':
+
     image_dir = 'dataset/CNN/Mavlab_himax1'
     csv_file = 'dataset/CNN/Mavlab_himax1/corners.csv'
     tf.config.run_functions_eagerly(True)
@@ -135,7 +95,7 @@ if __name__=='__main__':
 
 
     # Iniltiaize Class
-    dataset = AugmentedDataset(image_dir, csv_file, input_shape, output_shape, ['HSV'])
+    dataset = AugmentedDatasetSim(image_dir, csv_file, input_shape, output_shape, ['HSV'])
 
     # Create the dataset
     train_dataset, val_dataset = dataset.createDataset(batch_size=30)

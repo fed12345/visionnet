@@ -12,11 +12,6 @@ sys.path.append("network_creation")
 sys.path.append("visionnet/network/visionnet/network_creation/")
 
 from networktraining import trainNetwork
-from visionnet import createModel, createModelDronet, createModelGateNet
-from gendataset import Dataset
-from activeVisionNet import createModelActiveVision
-from genDatasetActiveVision import DatasetActive
-
 #==========================PARAMETERS===================================================================================
 # Create an argument parser
 parser = argparse.ArgumentParser(description='Process configuration file.')
@@ -51,14 +46,12 @@ save_model = parameters['save_model']
 
 input_shapes = [(input_shape)]
 #==========================CODE=========================================================================================
-#plot accuracies
 
 
 def visualizePrediction(image, prediction, actual):
-    image = cv2.cvtColor((image.numpy().astype('float')).astype('uint8'), cv2.COLOR_GRAY2RGB)
-    for i in range(0, len(prediction), 2):
-        cv2.circle(image, (int(prediction[i]*input_shape[1]), int(prediction[i+1]*input_shape[0])), 10, (0, 0, 255), -1)
-        cv2.circle(image, (int(actual[i]*input_shape[1]), int(actual[i+1]*input_shape[0])), 10, (0, 255, 0), -1)
+    image = cv2.cvtColor((image.numpy().astype('float')).astype('uint8'), cv2.COLOR_BGR2RGB)
+    cv2.circle(image, (int(prediction[3]), int(prediction[4])), 10, (0, 0, 255), -1)
+
     return image
 
 def visualizePredictionActiveVision(image, prediction, actual):
@@ -78,17 +71,10 @@ def visualizePredictionActiveVision(image, prediction, actual):
         image = cv2.arrowedLine(image, tuple(center.astype('int')), tuple(corner_val.astype('int')), (0, 0, 255), 2)
     return image
 
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 accuracies = []
 for input_shape in input_shapes:
-    predictions, imagesVal, labelsVal, accuracy = trainNetwork(model_name, dataset_dir,  dataset_dir_augmented, datasets, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
-    accuracies.append(accuracy)
-
-#plot accuracies
-plt.plot(input_shapes, accuracies)
-plt.xlabel('input shape')
-plt.ylabel('mse')
-plt.savefig('evalutation/accuracies.png')
+    predictions, imagesVal, labelsVal, _ = trainNetwork(model_name, dataset_dir,  dataset_dir_augmented, datasets, csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning)
 
 for i in range(len(labelsVal)):
      cv2.imwrite('evalutation/cnn/'+ str(i) + '.png',visualizePrediction(imagesVal[i], predictions[i], labelsVal[i]))

@@ -15,8 +15,10 @@ from visionnet import createModel, createModelDronet, createModelGateNet
 from gendataset import Dataset
 from dataAugment import AugmentedDataset
 from genSimData import SimDataset
+from dataAugmentSim import AugmentedDatasetSim
 from activeVisionNet import createModelActiveVision
 from genDatasetActiveVision import DatasetActive
+from loss import loss
 
 
 def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_name, input_shape, output_shape, batch_size, epochs, epochs_optimization, save_model, device, aware_quantization, pruning):
@@ -29,7 +31,7 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
         if aware_quantization:
             print('Aware Quantization Not Supported for Dronet')
             exit()
-    elif model_name == 'gatenet':
+    elif model_name == 'gatenet' or model_name == 'gatenetGray' :
         createModel = createModelGateNet
     else:
         print('Invalid model name')
@@ -40,16 +42,16 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
     datasetTrain = None
     datasetVal = None
     for image_dir in image_dirs:
-        if image_dir != 'Sim_images':
+        if image_dir == 'Sim_images':
             #Define csv file
             csv_file = os.path.join(dataset_dir,image_dir,csv_name)
 
             #initialize the dataset
             dataset = Dataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
-            augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
-            augmenteddata1 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, [])
-            augmenteddata2 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, [])
-            augmenteddata3 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV', 'BlurGaussian'])
+            augmenteddata = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV'])
+            augmenteddata1 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV'])
+            augmenteddata2 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV'])
+            augmenteddata3 = AugmentedDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape, ['HSV'])
 
             #Generate the datasets
             train, val = dataset.createDataset(batch_size=batch_size)
@@ -69,15 +71,16 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
                 datasetTrain = datasetTrain.concatenate(train_aug2)
                 datasetTrain = datasetTrain.concatenate(train_aug3)
                 datasetVal = datasetVal.concatenate(val)
-                datasetVal = datasetVal.concatenate(val_aug)
+                # datasetVal = datasetVal.concatenate(val_aug)
         else:
             #Define csv file
             csv_file = os.path.join(dataset_dir,image_dir,csv_name)
-
             dataset = SimDataset(os.path.join(dataset_dir,image_dir), csv_file, input_shape, output_shape)
+
 
             #Generate the datasets
             train, val = dataset.createDataset(batch_size=batch_size)
+
 
             #Combine the datasets
             if datasetTrain == None:
@@ -85,6 +88,7 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
                 datasetVal = val
             else:
                 datasetTrain = datasetTrain.concatenate(train)
+
                 datasetVal = datasetVal.concatenate(val)
     
 
@@ -113,43 +117,44 @@ def trainNetwork(model_name, dataset_dir, dataset_dir_augmented, datasets,  csv_
     plt.title('Model Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.yscale('log')
     plt.legend(['Train', 'Validation'], loc='upper right')
     plt.savefig('evalutation/Loss'+ model_name+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+ '.png', format='png')
-    baseline_accuracy = history.history['val_loss'][-1]
+    baseline_accuracy = history.history['val_lossNorm'][-1]
 
 
-    with strategy.scope():
-        if pruning:
-            #Prune the model
-            pruning_params = {'pruning_schedule': tfmot.sparsity.keras.ConstantSparsity(0.4, begin_step=0, frequency=100)}
-            model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
-            model.summary()
-            #Train the model
-            callbacks = [tfmot.sparsity.keras.UpdatePruningStep()]
-            opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
-            model.compile(optimizer=opt, loss='mse')
-            history = model.fit(datasetTrain, epochs=epochs_optimization, validation_data=datasetVal, verbose = 1, callbacks=callbacks)
-            #Remove pruning wrappers
-            model = tfmot.sparsity.keras.strip_pruning(model)
-            model.summary()
-            pruning_accuracy = history.history['val_loss'][-1]
-            # Convert the TensorFlow model to a TensorFlow Lite model
+    # with strategy.scope():
+    #     if pruning:
+    #         #Prune the model
+    #         pruning_params = {'pruning_schedule': tfmot.sparsity.keras.ConstantSparsity(0.4, begin_step=0, frequency=100)}
+    #         model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
+    #         model.summary()
+    #         #Train the model
+    #         callbacks = [tfmot.sparsity.keras.UpdatePruningStep()]
+    #         opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
+    #         model.compile(optimizer=opt, loss='mse')
+    #         history = model.fit(datasetTrain, epochs=epochs_optimization, validation_data=datasetVal, verbose = 1, callbacks=callbacks)
+    #         #Remove pruning wrappers
+    #         model = tfmot.sparsity.keras.strip_pruning(model)
+    #         model.summary()
+    #         pruning_accuracy = history.history['val_loss'][-1]
+    #         # Convert the TensorFlow model to a TensorFlow Lite model
 
-    if save_model:
-        converter = tf.lite.TFLiteConverter.from_keras_model(model)
-        converter.optimizations = [tf.lite.Optimize.EXPERIMENTAL_SPARSITY]
-        tflite_model = converter.convert()
+    # if save_model:
+    #     converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    #     converter.optimizations = [tf.lite.Optimize.EXPERIMENTAL_SPARSITY]
+    #     tflite_model = converter.convert()
 
-        # Save the TensorFlow Lite model to a file
-        with open('evalutation/models/'+str(model_name)+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_pruned.tflite', 'wb') as f:
-            f.write(tflite_model)
+    #     # Save the TensorFlow Lite model to a file
+    #     with open('evalutation/models/'+str(model_name)+'_'+ str(input_shape[1])+'x'+str(input_shape[0])+'_pruned.tflite', 'wb') as f:
+    #         f.write(tflite_model)
 
     with strategy.scope():
         if aware_quantization:
 
             model = tfmot.quantization.keras.quantize_model(model)
             
-            model.compile(optimizer='adam', loss='mse')
+            model.compile(optimizer='adam', loss=loss)
             history = model.fit(datasetTrain, epochs=epochs_optimization, validation_data=datasetVal, verbose = 1)
             quantization_accuracy = history.history['val_loss'][-1]
             model.summary()

@@ -26,10 +26,10 @@ class Dataset:
             numpy array: image
         """        
         image_file = tf.io.read_file(filename)
-        image = tf.io.decode_png(image_file, channels = 3)
+        image = tf.io.decode_png(image_file, channels = 1)
         image = tf.image.resize(image, self.input_shape[:2])
-        image = tf.image.rgb_to_grayscale(image)
         image = tf.cast(image, tf.float32)
+
 
         return image   
 
